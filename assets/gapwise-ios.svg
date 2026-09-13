@@ -1,42 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1080" role="img" aria-labelledby="title desc">
   <title id="title">Gapwise for iOS</title>
-  <desc id="desc">The Gapwise deer mark inside the same rounded app icon frame used by the Android logo, with an iOS-style wordmark beneath it.</desc>
-
+  <desc id="desc">The Gapwise deer mark inside the same rounded app icon frame used by the Android logo, with a compact iOS-style wordmark beneath it.</desc>
   <defs>
     <linearGradient id="gapwiseBlue" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#62B9FF"/>
       <stop offset="100%" stop-color="#3E9CF7"/>
     </linearGradient>
-
     <filter id="blueGlow" x="-35%" y="-35%" width="170%" height="170%">
       <feGaussianBlur stdDeviation="13" result="blur"/>
       <feFlood flood-color="#4EA7FE" flood-opacity="0.55" result="glowColor"/>
       <feComposite in="glowColor" in2="blur" operator="in" result="softGlow"/>
-      <feMerge>
-        <feMergeNode in="softGlow"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feMerge><feMergeNode in="softGlow"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-
     <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%">
       <feGaussianBlur stdDeviation="7" result="blur"/>
       <feFlood flood-color="#4EA7FE" flood-opacity="0.32" result="glowColor"/>
       <feComposite in="glowColor" in2="blur" operator="in" result="softGlow"/>
-      <feMerge>
-        <feMergeNode in="softGlow"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feMerge><feMergeNode in="softGlow"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-
     <path id="upper-left" d="M627 638 540 534c-21-19-47-32-75-49-47-29-68-77-68-132h31c2 32 13 63 34 87 6 6 12 12 20 18-3-14-3-27-1-39 2-13 6-24 12-33l25 13c-7 15-10 30-8 42 1 17 7 29 15 37 7 8 13 12 19 15l83 37Z"/>
     <path id="lower-left" d="M627 692 522 558c-18-19-40-33-59-39-15-1-31-1-48-1 0 30 11 56 36 76 17 12 35 16 74 16v120c0 8 3 14 8 20l72 100c5 7 12 10 22 10Z"/>
   </defs>
 
-  <!-- Exact Gapwise icon treatment from the Android repository -->
+  <!-- Icon is intentionally identical to the Android repository version. -->
   <g filter="url(#blueGlow)">
     <rect x="105" y="68" width="690" height="690" rx="145" fill="#05080C" stroke="url(#gapwiseBlue)" stroke-width="28"/>
   </g>
-
   <g fill="url(#gapwiseBlue)" filter="url(#softGlow)" transform="translate(-172.47292418772565 -179.72563176895306) scale(0.9927797833935018)">
     <use href="#upper-left"/>
     <use href="#upper-left" transform="translate(1254 0) scale(-1 1)"/>
@@ -44,16 +33,16 @@
     <use href="#lower-left" transform="translate(1254 0) scale(-1 1)"/>
   </g>
 
-  <!-- iOS-style geometric wordmark; paths/shapes only, no external font dependency -->
+  <!-- Compact Apple-style iOS wordmark, drawn as vector geometry (no font dependency). -->
   <g fill="url(#gapwiseBlue)" stroke="url(#gapwiseBlue)" filter="url(#softGlow)">
     <!-- i -->
-    <circle cx="283" cy="834" r="18" stroke="none"/>
-    <rect x="265" y="870" width="36" height="118" rx="18" stroke="none"/>
+    <circle cx="334" cy="840" r="11" stroke="none"/>
+    <rect x="324" y="868" width="20" height="91" rx="10" stroke="none"/>
 
     <!-- O -->
-    <ellipse cx="447" cy="907" rx="91" ry="105" fill="none" stroke-width="42"/>
+    <ellipse cx="446" cy="902" rx="57" ry="68" fill="none" stroke-width="22"/>
 
     <!-- S -->
-    <path d="M681 838 C650 811 592 811 575 846 C558 881 588 896 631 906 C676 916 704 932 704 966 C704 1005 663 1023 617 1015 C595 1011 576 1001 562 987" fill="none" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M583 854 C564 840 534 839 517 851 C503 861 502 876 513 885 C524 894 541 897 558 901 C577 906 591 916 591 933 C591 952 573 964 549 964 C529 964 512 957 501 947" fill="none" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>
