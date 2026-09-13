@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1080" role="img" aria-labelledby="title desc">
   <title id="title">Gapwise for iOS</title>
-  <desc id="desc">The Gapwise deer mark inside the same rounded app icon frame used by the Android logo, with a compact iOS-style wordmark beneath it.</desc>
+  <desc id="desc">The Gapwise deer mark in the same frame and treatment as the Android logo, with the Apple iOS wordmark beneath it.</desc>
   <defs>
     <linearGradient id="gapwiseBlue" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#62B9FF"/>
@@ -22,10 +22,11 @@
     <path id="lower-left" d="M627 692 522 558c-18-19-40-33-59-39-15-1-31-1-48-1 0 30 11 56 36 76 17 12 35 16 74 16v120c0 8 3 14 8 20l72 100c5 7 12 10 22 10Z"/>
   </defs>
 
-  <!-- Icon is intentionally identical to the Android repository version. -->
+  <!-- Exact icon/frame treatment used by the Android repository. -->
   <g filter="url(#blueGlow)">
     <rect x="105" y="68" width="690" height="690" rx="145" fill="#05080C" stroke="url(#gapwiseBlue)" stroke-width="28"/>
   </g>
+
   <g fill="url(#gapwiseBlue)" filter="url(#softGlow)" transform="translate(-172.47292418772565 -179.72563176895306) scale(0.9927797833935018)">
     <use href="#upper-left"/>
     <use href="#upper-left" transform="translate(1254 0) scale(-1 1)"/>
@@ -33,16 +34,8 @@
     <use href="#lower-left" transform="translate(1254 0) scale(-1 1)"/>
   </g>
 
-  <!-- Compact Apple-style iOS wordmark, drawn as vector geometry (no font dependency). -->
-  <g fill="url(#gapwiseBlue)" stroke="url(#gapwiseBlue)" filter="url(#softGlow)">
-    <!-- i -->
-    <circle cx="334" cy="840" r="11" stroke="none"/>
-    <rect x="324" y="868" width="20" height="91" rx="10" stroke="none"/>
-
-    <!-- O -->
-    <ellipse cx="446" cy="902" rx="57" ry="68" fill="none" stroke-width="22"/>
-
-    <!-- S -->
-    <path d="M583 854 C564 840 534 839 517 851 C503 861 502 876 513 885 C524 894 541 897 558 901 C577 906 591 916 591 933 C591 952 573 964 549 964 C529 964 512 957 501 947" fill="none" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Apple iOS wordmark converted to vector outlines; no external font dependency. -->
+  <g fill="url(#gapwiseBlue)" filter="url(#softGlow)" transform="translate(300 825) scale(1.587302 1.414427)">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M 147 104 L 147 100 L 158 100 L 161 101 L 170 101 L 174 100 L 181 100 L 185 99 L 188 97 L 188 91 L 186 89 L 183 88 L 179 87 L 174 87 L 171 86 L 165 86 L 161 85 L 157 85 L 154 84 L 150 84 L 147 83 L 145 82 L 143 81 L 141 79 L 140 77 L 140 74 L 141 72 L 143 70 L 146 68 L 150 66 L 154 65 L 159 64 L 166 64 L 171 65 L 176 65 L 180 66 L 184 67 L 187 68 L 187 76 L 183 75 L 180 74 L 176 73 L 172 72 L 167 72 L 162 71 L 157 72 L 153 72 L 150 73 L 148 74 L 148 77 L 151 78 L 154 79 L 158 80 L 163 80 L 168 81 L 172 81 L 177 82 L 181 82 L 185 83 L 188 84 L 192 86 L 194 88 L 196 91 L 196 96 L 195 99 L 192 102 L 188 104 L 184 106 L 178 107 L 172 108 L 163 108 L 156 107 L 151 106 Z M 47 105 L 43 103 L 40 100 L 37 96 L 34 91 L 32 86 L 30 79 L 29 72 L 29 64 L 30 56 L 32 49 L 35 43 L 38 38 L 42 34 L 46 31 L 51 29 L 57 27 L 63 26 L 70 26 L 76 27 L 82 29 L 87 31 L 92 35 L 96 39 L 99 44 L 102 50 L 104 57 L 105 64 L 105 72 L 104 80 L 102 87 L 99 93 L 96 98 L 92 102 L 87 105 L 82 107 L 76 109 L 69 110 L 62 109 L 56 108 L 51 107 Z M 68 101 L 75 100 L 81 98 L 86 95 L 90 91 L 93 86 L 95 80 L 96 73 L 96 65 L 95 58 L 93 52 L 90 47 L 86 43 L 81 40 L 75 38 L 68 37 L 61 38 L 55 40 L 50 43 L 46 47 L 43 52 L 41 58 L 40 65 L 40 72 L 41 79 L 43 85 L 46 90 L 50 94 L 55 97 L 61 99 Z M 15 104 L 15 37 L 29 37 L 29 104 Z M 15 18 L 15 7 L 28 7 L 28 18 Z"/>
   </g>
 </svg>
