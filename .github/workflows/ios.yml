@@ -1,0 +1,45 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable-core:
+    name: Portable core tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Swift version
+        run: swift --version
+      - name: Test core
+        run: swift test
+
+  ios:
+    name: iOS build and tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show toolchain
+        run: xcodebuild -version
+      - name: Inspect project
+        run: xcodebuild -project Gapwise.xcodeproj -list
+      - name: Select an available iPhone simulator
+        run: |
+          destination_id=$(xcrun simctl list devices available --json | ruby -rjson -e 'devices = JSON.parse(STDIN.read).fetch("devices").values.flatten; phone = devices.find { |device| device["isAvailable"] && device["name"].start_with?("iPhone") }; abort "No available iPhone simulator was found" unless phone; puts phone.fetch("udid")')
+          echo "DESTINATION_ID=$destination_id" >> "$GITHUB_ENV"
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Gapwise.xcodeproj \
+            -scheme Gapwise \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DESTINATION_ID" \
+            CODE_SIGNING_ALLOWED=NO \
+            test

@@ -35,9 +35,9 @@ The goal is a real native iOS application rather than a WebView wrapper: navigat
 
 ## Current status
 
-The iOS client is at an **early repository/bootstrap stage**. The brand, product boundary, technology direction, and ecosystem integration are established here; the application features described below are the implementation target, not a claim that they are already shipped.
+The repository now contains the first native application foundation: an iPhone SwiftUI target, local timetable persistence, campus-qualified schedule models, date-aware Today and Timetable views, an honest UTM-first Campus boundary, Settings, portable domain tests, and macOS CI validation.
 
-That distinction is intentional. Gapwise documentation should describe what exists and what is planned separately rather than presenting roadmap work as completed functionality.
+This remains an **early implementation**, not a shipped client. ACORN import, timetable editing, gaps, maps, routing, account continuity, and remote integrations are still planned work. The preview schedule is development-only and the production app starts with an empty local timetable.
 
 ---
 
@@ -55,35 +55,41 @@ The native iOS experience is being designed around the same principles as the An
 
 ---
 
-## Planned app surface
+## App surface
 
-The native iOS client is intended to grow toward the core Gapwise experience:
+The current foundation includes:
 
-- **Today** for the current day's schedule and immediate context;
-- **Timetable** for local ACORN `.ics` import across U of T campuses;
+- **Today**, derived from local timetable data, with current/next-class context and empty states;
+- **Timetable**, with week/day navigation and campus-aware meeting cards;
+- **Campus**, with a selectable campus context and an explicit UTM-first availability state;
+- **Settings**, with appearance, local timetable removal, campus context, privacy, version, and ecosystem links;
+- atomic local JSON persistence behind an async repository boundary;
+- light/dark appearance, Dynamic Type-friendly layouts, VoiceOver labels, and native navigation.
+
+The native iOS client is intended to grow toward the remaining Gapwise experience:
+
+- local ACORN `.ics` import across U of T campuses;
 - **Gaps** for deterministic time-between-class planning;
 - **Map** for UTM-focused campus navigation and route context;
-- **Settings** for appearance, privacy, timetable, account/sync, routing, exports, and integrations as those systems are implemented;
-- light and dark appearance;
-- privacy-first local persistence;
+- timetable editing, exports, and integrations;
 - optional, explicitly scoped account continuity.
 
 These are roadmap targets. This README will be tightened as implementation lands so the “current” surface never outruns the code.
 
 ---
 
-## Technology direction
+## Technology
 
-Gapwise for iOS is intended to use modern native Apple tooling:
+Gapwise for iOS uses modern native Apple tooling:
 
 - **Swift**
 - **SwiftUI**
-- Apple document-picker and lifecycle APIs
+- Foundation persistence and Apple lifecycle APIs
 - **Keychain / platform-secure storage** where secret material is eventually required
 - a native map stack compatible with canonical Gapwise UTM data and routing semantics
 - optional Gapwise account integration only after its security boundary is implemented and reviewed
 
-The architecture should keep domain models, timetable parsing, persistence, account/sync, navigation, map integration, and feature UI separated as the application grows.
+The architecture keeps portable domain models and schedule arithmetic separate from persistence and SwiftUI features. Parsing, account/sync, and map integration will remain separate boundaries as they are introduced.
 
 ---
 
@@ -99,20 +105,28 @@ The iOS client follows the same security posture as the wider Gapwise ecosystem:
 - preserve campus/source identity rather than inventing location certainty;
 - make permissions narrow, understandable, and revocable.
 
-No persistence, encryption, account-sync, or map capability should be described as implemented before the corresponding code and verification exist.
+The current timetable store writes an atomically replaced JSON snapshot inside Application Support and applies iOS file protection. No account sync, end-to-end encryption, analytics, or map capability is implemented.
 
 ---
 
 ## Development
 
-Native iOS development lives in this repository as the client is built out in Swift and SwiftUI.
+The app targets iPhone on iOS 17 or later and uses a filesystem-synchronized Xcode 16 project. There are no third-party runtime dependencies.
 
 ```bash
 git clone https://github.com/Gapwise-for-UTM/ios.git
 cd ios
 ```
 
-As the Xcode project and build pipeline land, this section will carry the exact supported Xcode/iOS requirements and verification commands.
+Open `Gapwise.xcodeproj` in Xcode 16 or later, select the `Gapwise` scheme, and run it on an iPhone simulator or device. The shared scheme builds the app and runs `GapwiseTests`.
+
+The Foundation-only core and its tests also build on Linux:
+
+```bash
+swift test
+```
+
+GitHub Actions runs those portable tests on Ubuntu and runs the complete unsigned iOS build and unit-test suite on a dynamically selected iPhone simulator on `macos-15`.
 
 ---
 
