@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1080" role="img" aria-labelledby="title desc">
   <title id="title">Gapwise for iOS</title>
-  <desc id="desc">The Gapwise deer mark in the same frame and treatment as the Android logo, with the Apple iOS wordmark beneath it.</desc>
+  <desc id="desc">The Gapwise deer mark in the same frame and treatment as the Android logo, with the iOS wordmark beneath it.</desc>
   <defs>
     <linearGradient id="gapwiseBlue" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#62B9FF"/>
@@ -21,21 +21,14 @@
     <path id="upper-left" d="M627 638 540 534c-21-19-47-32-75-49-47-29-68-77-68-132h31c2 32 13 63 34 87 6 6 12 12 20 18-3-14-3-27-1-39 2-13 6-24 12-33l25 13c-7 15-10 30-8 42 1 17 7 29 15 37 7 8 13 12 19 15l83 37Z"/>
     <path id="lower-left" d="M627 692 522 558c-18-19-40-33-59-39-15-1-31-1-48-1 0 30 11 56 36 76 17 12 35 16 74 16v120c0 8 3 14 8 20l72 100c5 7 12 10 22 10Z"/>
   </defs>
-
-  <!-- Exact icon/frame treatment used by the Android repository. -->
   <g filter="url(#blueGlow)">
     <rect x="105" y="68" width="690" height="690" rx="145" fill="#05080C" stroke="url(#gapwiseBlue)" stroke-width="28"/>
   </g>
-
   <g fill="url(#gapwiseBlue)" filter="url(#softGlow)" transform="translate(-172.47292418772565 -179.72563176895306) scale(0.9927797833935018)">
     <use href="#upper-left"/>
     <use href="#upper-left" transform="translate(1254 0) scale(-1 1)"/>
     <use href="#lower-left"/>
     <use href="#lower-left" transform="translate(1254 0) scale(-1 1)"/>
   </g>
-
-  <!-- Apple iOS wordmark converted to vector outlines; no external font dependency. -->
-  <g fill="url(#gapwiseBlue)" filter="url(#softGlow)" transform="translate(300 825) scale(1.587302 1.414427)">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M 147 104 L 147 100 L 158 100 L 161 101 L 170 101 L 174 100 L 181 100 L 185 99 L 188 97 L 188 91 L 186 89 L 183 88 L 179 87 L 174 87 L 171 86 L 165 86 L 161 85 L 157 85 L 154 84 L 150 84 L 147 83 L 145 82 L 143 81 L 141 79 L 140 77 L 140 74 L 141 72 L 143 70 L 146 68 L 150 66 L 154 65 L 159 64 L 166 64 L 171 65 L 176 65 L 180 66 L 184 67 L 187 68 L 187 76 L 183 75 L 180 74 L 176 73 L 172 72 L 167 72 L 162 71 L 157 72 L 153 72 L 150 73 L 148 74 L 148 77 L 151 78 L 154 79 L 158 80 L 163 80 L 168 81 L 172 81 L 177 82 L 181 82 L 185 83 L 188 84 L 192 86 L 194 88 L 196 91 L 196 96 L 195 99 L 192 102 L 188 104 L 184 106 L 178 107 L 172 108 L 163 108 L 156 107 L 151 106 Z M 47 105 L 43 103 L 40 100 L 37 96 L 34 91 L 32 86 L 30 79 L 29 72 L 29 64 L 30 56 L 32 49 L 35 43 L 38 38 L 42 34 L 46 31 L 51 29 L 57 27 L 63 26 L 70 26 L 76 27 L 82 29 L 87 31 L 92 35 L 96 39 L 99 44 L 102 50 L 104 57 L 105 64 L 105 72 L 104 80 L 102 87 L 99 93 L 96 98 L 92 102 L 87 105 L 82 107 L 76 109 L 69 110 L 62 109 L 56 108 L 51 107 Z M 68 101 L 75 100 L 81 98 L 86 95 L 90 91 L 93 86 L 95 80 L 96 73 L 96 65 L 95 58 L 93 52 L 90 47 L 86 43 L 81 40 L 75 38 L 68 37 L 61 38 L 55 40 L 50 43 L 46 47 L 43 52 L 41 58 L 40 65 L 40 72 L 41 79 L 43 85 L 46 90 L 50 94 L 55 97 L 61 99 Z M 15 104 L 15 37 L 29 37 L 29 104 Z M 15 18 L 15 7 L 28 7 L 28 18 Z"/>
-  </g>
+  <path d="M 86,96 L 86,169 L 101,169 L 101,97 L 100,96 Z M 90,67 L 88,68 L 85,72 L 85,79 L 86,81 L 90,84 L 97,84 L 99,82 L 100,82 L 102,78 L 102,73 L 100,69 L 99,69 L 97,67 Z M 262,67 L 257,67 L 256,66 L 243,66 L 242,67 L 238,67 L 237,68 L 235,68 L 227,72 L 221,78 L 218,84 L 218,86 L 217,87 L 217,91 L 216,92 L 216,96 L 217,97 L 217,101 L 220,108 L 229,117 L 232,118 L 234,120 L 240,123 L 242,123 L 250,127 L 257,134 L 259,138 L 259,147 L 257,151 L 250,157 L 248,157 L 247,158 L 241,158 L 239,159 L 238,158 L 231,158 L 230,157 L 227,157 L 224,155 L 222,155 L 218,153 L 217,155 L 217,158 L 215,162 L 215,165 L 220,168 L 226,169 L 227,170 L 232,170 L 233,171 L 246,171 L 247,170 L 251,170 L 252,169 L 257,168 L 264,164 L 269,159 L 272,154 L 272,152 L 274,148 L 274,135 L 273,134 L 273,131 L 269,124 L 260,116 L 238,105 L 233,100 L 232,98 L 232,95 L 231,94 L 232,87 L 236,82 L 241,79 L 252,78 L 253,79 L 258,79 L 259,80 L 264,81 L 267,83 L 268,77 L 270,73 L 270,70 L 263,68 Z M 154,66 L 153,67 L 146,68 L 135,74 L 128,81 L 128,82 L 124,87 L 122,91 L 122,93 L 120,96 L 120,99 L 119,100 L 119,103 L 118,104 L 118,108 L 117,109 L 117,129 L 118,130 L 118,135 L 119,136 L 119,139 L 122,145 L 122,147 L 126,154 L 133,162 L 134,162 L 137,165 L 145,169 L 148,169 L 149,170 L 152,170 L 153,171 L 165,171 L 166,170 L 174,169 L 182,165 L 184,163 L 185,163 L 195,152 L 199,144 L 200,138 L 201,137 L 201,134 L 202,133 L 202,127 L 203,126 L 203,110 L 202,109 L 202,103 L 201,102 L 201,99 L 200,98 L 198,90 L 195,86 L 194,83 L 187,75 L 186,75 L 183,72 L 172,67 L 168,67 L 167,66 Z M 156,78 L 164,78 L 165,79 L 168,79 L 172,81 L 181,91 L 184,97 L 184,99 L 186,103 L 186,107 L 187,108 L 187,128 L 186,129 L 186,134 L 185,135 L 184,140 L 179,149 L 173,155 L 172,155 L 170,157 L 168,157 L 164,159 L 156,159 L 155,158 L 152,158 L 147,155 L 140,148 L 139,145 L 137,143 L 137,141 L 134,135 L 134,131 L 133,130 L 133,121 L 132,120 L 132,118 L 133,117 L 133,107 L 134,106 L 134,103 L 135,102 L 135,99 L 137,96 L 137,94 L 139,92 L 140,89 L 148,81 L 152,79 L 155,79 Z" fill="url(#gapwiseBlue)" fill-rule="evenodd" filter="url(#softGlow)" transform="translate(165.789474 720.789474) scale(1.578947)"/>
 </svg>
