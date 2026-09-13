@@ -24,7 +24,7 @@ struct TimetableView: View {
 
                 Divider()
 
-                Text(selectedDate.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                Text(GapwiseFormatters.fullDate(selectedDate, calendar: calculator.calendar))
                     .font(.title3.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
 

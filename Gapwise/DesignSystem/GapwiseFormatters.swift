@@ -10,7 +10,30 @@ enum GapwiseFormatters {
             return String(format: "%02d:%02d", time.hour, time.minute)
         }
 
-        return value.formatted(date: .omitted, time: .shortened)
+        let format = Date.FormatStyle(
+            date: .omitted,
+            time: .shortened,
+            locale: .current,
+            calendar: calendar,
+            timeZone: calendar.timeZone
+        )
+        return format.format(value)
+    }
+
+    static func fullDate(_ date: Date, calendar: Calendar) -> String {
+        dateFormat(calendar: calendar)
+            .weekday(.wide)
+            .month(.wide)
+            .day()
+            .format(date)
+    }
+
+    static func narrowWeekday(_ date: Date, calendar: Calendar) -> String {
+        dateFormat(calendar: calendar).weekday(.narrow).format(date)
+    }
+
+    static func dayNumber(_ date: Date, calendar: Calendar) -> String {
+        dateFormat(calendar: calendar).day().format(date)
     }
 
     static func weekRange(_ dates: [Date], calendar: Calendar) -> String {
@@ -19,12 +42,12 @@ enum GapwiseFormatters {
         let lastMonth = calendar.component(.month, from: last)
 
         if firstMonth == lastMonth {
-            return
-                "\(first.formatted(.dateTime.month(.wide))) \(first.formatted(.dateTime.day()))-\(last.formatted(.dateTime.day()))"
+            let format = dateFormat(calendar: calendar)
+            return "\(format.month(.wide).format(first)) \(format.day().format(first))-\(format.day().format(last))"
         }
 
-        return
-            "\(first.formatted(.dateTime.month(.abbreviated).day())) - \(last.formatted(.dateTime.month(.abbreviated).day()))"
+        let format = dateFormat(calendar: calendar).month(.abbreviated).day()
+        return "\(format.format(first)) - \(format.format(last))"
     }
 
     static func relativeMinutes(_ minutes: Int) -> String {
@@ -38,5 +61,15 @@ enum GapwiseFormatters {
             return "in \(hours) hr"
         }
         return "in \(hours) hr \(remainingMinutes) min"
+    }
+
+    private static func dateFormat(calendar: Calendar) -> Date.FormatStyle {
+        Date.FormatStyle(
+            date: .omitted,
+            time: .omitted,
+            locale: .current,
+            calendar: calendar,
+            timeZone: calendar.timeZone
+        )
     }
 }

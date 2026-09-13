@@ -1,8 +1,10 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var appModel
     @State private var isConfirmingTimetableRemoval = false
+    @State private var isSelectingCalendar = false
 
     var body: some View {
         Form {
@@ -21,6 +23,20 @@ struct SettingsView: View {
             }
 
             Section("Timetable") {
+                Button {
+                    isSelectingCalendar = true
+                } label: {
+                    if appModel.isPreparingImport {
+                        HStack {
+                            ProgressView()
+                            Text("Reading Calendar")
+                        }
+                    } else {
+                        Label("Import Calendar File", systemImage: "square.and.arrow.down")
+                    }
+                }
+                .disabled(appModel.isLoading || appModel.isPreparingImport || appModel.isSavingImport)
+
                 LabeledContent("Saved meetings", value: "\(appModel.timetable.meetings.count)")
 
                 if let lastModified = appModel.timetable.lastModified {
@@ -44,7 +60,7 @@ struct SettingsView: View {
                         set: { appModel.setCampusContext($0) }
                     )
                 ) {
-                    ForEach(Campus.allCases) { campus in
+                    ForEach(Campus.selectableCases) { campus in
                         Text(campus.shortName).tag(campus)
                     }
                 }
@@ -89,6 +105,36 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .fileImporter(
+            isPresented: $isSelectingCalendar,
+            allowedContentTypes: [.gapwiseICalendar]
+        ) { result in
+            switch result {
+            case let .success(url):
+                Task { @MainActor in
+                    await appModel.prepareTimetableImport(from: url)
+                }
+            case let .failure(error):
+                let cocoaError = error as NSError
+                guard cocoaError.domain != NSCocoaErrorDomain || cocoaError.code != NSUserCancelledError else { return }
+                Task { @MainActor in
+                    appModel.alertMessage = "The calendar picker could not open the selected file."
+                }
+            }
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { appModel.pendingImportPlan != nil },
+                set: { isPresented in
+                    if !isPresented { appModel.cancelPendingImport() }
+                }
+            )
+        ) {
+            if let plan = appModel.pendingImportPlan {
+                TimetableImportPreviewView(plan: plan)
+                    .environment(appModel)
+            }
+        }
         .confirmationDialog(
             "Remove your saved timetable?",
             isPresented: $isConfirmingTimetableRemoval,

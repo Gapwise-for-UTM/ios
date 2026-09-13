@@ -19,7 +19,7 @@ struct TodayView: View {
 
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: GapwiseSpacing.standard) {
-                Text(now.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                Text(GapwiseFormatters.fullDate(now, calendar: calculator.calendar))
                     .font(.title2.weight(.bold))
                     .accessibilityAddTraits(.isHeader)
 
@@ -75,25 +75,38 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(meeting.courseCode.rawValue)
                     .font(.title2.weight(.bold))
-                Text("\(meeting.meetingType.shortName) \(meeting.meetingSection)")
+                if let courseTitle = meeting.courseTitle {
+                    Text(courseTitle)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(2)
+                }
+                Text(meeting.displaySection)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             HStack(spacing: GapwiseSpacing.standard) {
                 Label(
-                    GapwiseFormatters.time(meeting.startTime, on: now, calendar: calculator.calendar),
+                    timeRange(for: meeting, on: now),
                     systemImage: "clock"
                 )
                 if let location = meeting.location {
-                    Label(location.displayName, systemImage: "mappin")
+                    Label(location.displayName, systemImage: location.systemImageName)
                         .lineLimit(2)
+                } else {
+                    Label("Location unavailable", systemImage: "mappin.slash")
                 }
             }
             .font(.subheadline)
         }
         .gapwiseCard()
         .accessibilityElement(children: .combine)
+    }
+
+    private func timeRange(for meeting: CourseMeeting, on date: Date) -> String {
+        let start = GapwiseFormatters.time(meeting.startTime, on: date, calendar: calculator.calendar)
+        let end = GapwiseFormatters.time(meeting.endTime, on: date, calendar: calculator.calendar)
+        return "\(start)–\(end)"
     }
 
     private var classesCompleteCard: some View {

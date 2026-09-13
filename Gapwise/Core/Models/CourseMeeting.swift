@@ -51,26 +51,121 @@ struct MeetingIdentity: Codable, Hashable, Sendable {
     let campus: Campus
     let courseCode: CourseCode
     let termID: AcademicTerm.ID
-    let courseSection: String
+    let courseSection: String?
     let meetingType: MeetingType
     let meetingSection: String
     let sourceIdentifier: String
+    let importSourceIdentifier: String?
+
+    init(
+        campus: Campus,
+        courseCode: CourseCode,
+        termID: AcademicTerm.ID,
+        courseSection: String?,
+        meetingType: MeetingType,
+        meetingSection: String,
+        sourceIdentifier: String,
+        importSourceIdentifier: String? = nil
+    ) {
+        self.campus = campus
+        self.courseCode = courseCode
+        self.termID = termID
+        self.courseSection = courseSection
+        self.meetingType = meetingType
+        self.meetingSection = meetingSection
+        self.sourceIdentifier = sourceIdentifier
+        self.importSourceIdentifier = importSourceIdentifier
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case campus
+        case courseCode
+        case termID
+        case courseSection
+        case meetingType
+        case meetingSection
+        case sourceIdentifier
+        case importSourceIdentifier
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        campus = try container.decode(Campus.self, forKey: .campus)
+        courseCode = try container.decode(CourseCode.self, forKey: .courseCode)
+        termID = try container.decode(AcademicTerm.ID.self, forKey: .termID)
+        courseSection = try container.decodeIfPresent(String.self, forKey: .courseSection)
+        meetingType = try container.decode(MeetingType.self, forKey: .meetingType)
+        meetingSection = try container.decode(String.self, forKey: .meetingSection)
+        sourceIdentifier = try container.decode(String.self, forKey: .sourceIdentifier)
+        importSourceIdentifier = try container.decodeIfPresent(String.self, forKey: .importSourceIdentifier)
+    }
+}
+
+enum MeetingLocationKind: String, Codable, Hashable, Sendable {
+    case physical
+    case online
+    case toBeAnnounced
+    case unknown
 }
 
 struct MeetingLocation: Codable, Hashable, Sendable {
     let displayName: String
+    let rawLocation: String
     let buildingCode: String?
     let room: String?
+    let kind: MeetingLocationKind
 
-    init(displayName: String, buildingCode: String? = nil, room: String? = nil) {
+    init(
+        displayName: String,
+        rawLocation: String? = nil,
+        buildingCode: String? = nil,
+        room: String? = nil,
+        kind: MeetingLocationKind = .unknown
+    ) {
         self.displayName = displayName
+        self.rawLocation = rawLocation ?? displayName
         self.buildingCode = buildingCode
         self.room = room
+        self.kind = kind
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case displayName
+        case rawLocation
+        case buildingCode
+        case room
+        case kind
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        rawLocation = try container.decodeIfPresent(String.self, forKey: .rawLocation) ?? displayName
+        buildingCode = try container.decodeIfPresent(String.self, forKey: .buildingCode)
+        room = try container.decodeIfPresent(String.self, forKey: .room)
+        kind = try container.decodeIfPresent(MeetingLocationKind.self, forKey: .kind) ?? .unknown
+    }
+}
+
+enum MeetingOriginKind: String, Codable, Hashable, Sendable {
+    case calendarImport
+    case manual
+    case legacy
+}
+
+struct MeetingOrigin: Codable, Hashable, Sendable {
+    let kind: MeetingOriginKind
+    let sourceIdentifier: String?
+
+    static let legacy = MeetingOrigin(kind: .legacy, sourceIdentifier: nil)
+    static let manual = MeetingOrigin(kind: .manual, sourceIdentifier: nil)
+
+    static func calendarImport(sourceIdentifier: String) -> Self {
+        MeetingOrigin(kind: .calendarImport, sourceIdentifier: sourceIdentifier)
     }
 }
 
 enum CourseMeetingValidationError: Error, Equatable {
-    case emptyCourseSection
     case emptyMeetingSection
     case emptySourceIdentifier
     case endNotAfterStart
@@ -86,18 +181,28 @@ struct CourseMeeting: Identifiable, Codable, Hashable, Sendable {
     let endTime: LocalTime
     let location: MeetingLocation?
     let instructor: String?
+    let origin: MeetingOrigin
 
     var campus: Campus { id.campus }
     var courseCode: CourseCode { id.courseCode }
     var meetingType: MeetingType { id.meetingType }
     var meetingSection: String { id.meetingSection }
 
+    var displaySection: String {
+        let normalizedSection = meetingSection.uppercased()
+        let knownPrefixes = ["LEC", "TUT", "PRA", "LAB"]
+        if knownPrefixes.contains(where: normalizedSection.hasPrefix) {
+            return normalizedSection
+        }
+        return "\(meetingType.shortName) \(meetingSection)"
+    }
+
     init(
         campus: Campus,
         courseCode: CourseCode,
         courseTitle: String? = nil,
         term: AcademicTerm,
-        courseSection: String,
+        courseSection: String? = nil,
         meetingType: MeetingType,
         meetingSection: String,
         days: Set<Weekday>,
@@ -105,15 +210,13 @@ struct CourseMeeting: Identifiable, Codable, Hashable, Sendable {
         endTime: LocalTime,
         location: MeetingLocation? = nil,
         instructor: String? = nil,
-        sourceIdentifier: String
+        sourceIdentifier: String,
+        origin: MeetingOrigin = .legacy
     ) throws {
-        let courseSection = courseSection.trimmingCharacters(in: .whitespacesAndNewlines)
+        let courseSection = courseSection?.trimmingCharacters(in: .whitespacesAndNewlines)
         let meetingSection = meetingSection.trimmingCharacters(in: .whitespacesAndNewlines)
         let sourceIdentifier = sourceIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !courseSection.isEmpty else {
-            throw CourseMeetingValidationError.emptyCourseSection
-        }
         guard !meetingSection.isEmpty else {
             throw CourseMeetingValidationError.emptyMeetingSection
         }
@@ -131,10 +234,11 @@ struct CourseMeeting: Identifiable, Codable, Hashable, Sendable {
             campus: campus,
             courseCode: courseCode,
             termID: term.id,
-            courseSection: courseSection,
+            courseSection: courseSection?.isEmpty == false ? courseSection : nil,
             meetingType: meetingType,
             meetingSection: meetingSection,
-            sourceIdentifier: sourceIdentifier
+            sourceIdentifier: sourceIdentifier,
+            importSourceIdentifier: origin.sourceIdentifier
         )
         self.courseTitle = courseTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         self.term = term
@@ -143,6 +247,7 @@ struct CourseMeeting: Identifiable, Codable, Hashable, Sendable {
         self.endTime = endTime
         self.location = location
         self.instructor = instructor?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.origin = origin
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -154,6 +259,7 @@ struct CourseMeeting: Identifiable, Codable, Hashable, Sendable {
         case endTime
         case location
         case instructor
+        case origin
     }
 
     init(from decoder: Decoder) throws {
@@ -173,7 +279,8 @@ struct CourseMeeting: Identifiable, Codable, Hashable, Sendable {
             endTime: try container.decode(LocalTime.self, forKey: .endTime),
             location: try container.decodeIfPresent(MeetingLocation.self, forKey: .location),
             instructor: try container.decodeIfPresent(String.self, forKey: .instructor),
-            sourceIdentifier: id.sourceIdentifier
+            sourceIdentifier: id.sourceIdentifier,
+            origin: try container.decodeIfPresent(MeetingOrigin.self, forKey: .origin) ?? .legacy
         )
     }
 }

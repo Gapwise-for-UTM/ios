@@ -8,6 +8,9 @@ final class AppModel {
     private(set) var timetable: TimetableSnapshot
     private(set) var preferences: UserPreferences
     private(set) var isLoading = false
+    private(set) var isPreparingImport = false
+    private(set) var isSavingImport = false
+    private(set) var pendingImportPlan: TimetableImportPlan?
     var selectedTimetableDate: Date
     var alertMessage: String?
 
@@ -72,6 +75,51 @@ final class AppModel {
         } catch {
             alertMessage = "Your saved timetable could not be removed."
         }
+    }
+
+    func prepareTimetableImport(from url: URL) async {
+        guard !isLoading, !isPreparingImport, !isSavingImport, pendingImportPlan == nil else { return }
+        isPreparingImport = true
+        defer { isPreparingImport = false }
+
+        do {
+            let data = try await ImportedDocumentReader.read(
+                url: url,
+                maximumByteCount: TimetableImportService.maximumDocumentSize
+            )
+            let existingSnapshot = timetable
+            let suggestedFileName = url.lastPathComponent
+            pendingImportPlan = try await Task.detached(priority: .userInitiated) {
+                try TimetableImportService().prepareImport(
+                    data: data,
+                    suggestedFileName: suggestedFileName,
+                    existingSnapshot: existingSnapshot
+                )
+            }.value
+        } catch {
+            alertMessage =
+                (error as? LocalizedError)?.errorDescription
+                ?? "The selected calendar could not be imported."
+        }
+    }
+
+    func confirmPendingImport() async {
+        guard let plan = pendingImportPlan, !isSavingImport else { return }
+        isSavingImport = true
+        defer { isSavingImport = false }
+
+        do {
+            try await timetableRepository.save(plan.resultingSnapshot)
+            timetable = plan.resultingSnapshot
+            pendingImportPlan = nil
+        } catch {
+            alertMessage = "The imported timetable could not be saved. Your existing timetable has not been changed."
+        }
+    }
+
+    func cancelPendingImport() {
+        guard !isSavingImport else { return }
+        pendingImportPlan = nil
     }
 
     func dismissAlert() {

@@ -35,9 +35,9 @@ The goal is a real native iOS application rather than a WebView wrapper: navigat
 
 ## Current status
 
-The repository now contains the first native application foundation: an iPhone SwiftUI target, local timetable persistence, campus-qualified schedule models, date-aware Today and Timetable views, an honest UTM-first Campus boundary, Settings, portable domain tests, and macOS CI validation.
+The repository contains a working early native application: an iPhone SwiftUI target, on-device `.ics` timetable import with a review-before-save flow, local timetable persistence, campus-qualified schedule models, date-aware Today and Timetable views, an honest UTM-first Campus boundary, Settings, portable domain tests, and macOS CI configuration.
 
-This remains an **early implementation**, not a shipped client. ACORN import, timetable editing, gaps, maps, routing, account continuity, and remote integrations are still planned work. The preview schedule is development-only and the production app starts with an empty local timetable.
+This remains an **early implementation**, not a shipped client. Import compatibility has been validated against synthetic standards-based fixtures, not every calendar producer or a live ACORN export. Timetable editing, gaps, maps, routing, account continuity, and remote integrations are still planned work. The preview schedule is development-only and the production app starts with an empty local timetable.
 
 ---
 
@@ -63,12 +63,13 @@ The current foundation includes:
 - **Timetable**, with week/day navigation and campus-aware meeting cards;
 - **Campus**, with a selectable campus context and an explicit UTM-first availability state;
 - **Settings**, with appearance, local timetable removal, campus context, privacy, version, and ecosystem links;
+- a native document-picker and import preview for compatible `.ics` timetable/calendar exports;
 - atomic local JSON persistence behind an async repository boundary;
 - light/dark appearance, Dynamic Type-friendly layouts, VoiceOver labels, and native navigation.
 
 The native iOS client is intended to grow toward the remaining Gapwise experience:
 
-- local ACORN `.ics` import across U of T campuses;
+- broader timetable-import compatibility and user-controlled editing;
 - **Gaps** for deterministic time-between-class planning;
 - **Map** for UTM-focused campus navigation and route context;
 - timetable editing, exports, and integrations;
@@ -89,7 +90,26 @@ Gapwise for iOS uses modern native Apple tooling:
 - a native map stack compatible with canonical Gapwise UTM data and routing semantics
 - optional Gapwise account integration only after its security boundary is implemented and reviewed
 
-The architecture keeps portable domain models and schedule arithmetic separate from persistence and SwiftUI features. Parsing, account/sync, and map integration will remain separate boundaries as they are introduced.
+The architecture keeps portable domain models, iCalendar parsing, schedule interpretation, reconciliation, and schedule arithmetic separate from persistence and SwiftUI features. Account/sync and map integration will remain separate boundaries as they are introduced.
+
+### Timetable import
+
+Gapwise accepts user-selected `.ics` files through the system document picker. Parsing, interpretation, preview, and persistence happen locally. The original calendar file is not copied into the app container and timetable contents are not uploaded.
+
+The current parser intentionally supports the timetable-oriented iCalendar subset used by the app: `VCALENDAR`, `VEVENT`, `DTSTART`, `DTEND`, `SUMMARY`, `LOCATION`, `DESCRIPTION`, `UID`, bounded weekly `RRULE` values, folded lines, escaped text, UTF-8 input, and UTC, numeric-offset, `America/Toronto`, or floating timestamps. Floating times are interpreted in Toronto time and surfaced as review warnings.
+
+Course meetings are imported only when a full U of T-style course code and meeting section can be identified. Campus remains explicit in the model: calendar/event wording can identify UTM, UTSG, or UTSC, and a small centralized mapping of published UTM building codes can provide UTM evidence. Conflicting or insufficient evidence produces `unknown`, never a course-code guess.
+
+Repeated imports reconcile by calendar-source identity and event `UID`. Existing matches are updated, unchanged events are not duplicated, and entries from other imports or future manual sources remain untouched. A meeting missing from a newer export is conservatively retained until Gapwise has an explicit removal review.
+
+Current limitations:
+
+- recurring events must be weekly, use an interval of one, and be bounded by `COUNT` or `UNTIL`;
+- recurrence exceptions (`EXDATE`, `RDATE`, and `RECURRENCE-ID`) and non-weekly recurrence are reported and skipped;
+- timezone identifiers other than recognized system zones and `America/Toronto` aliases are not guessed;
+- campus/building recognition is intentionally incomplete, with UTM as the initial building-code focus;
+- importing is not ACORN login, credential access, scraping, or an account/API integration;
+- imported meetings can be reviewed and the whole saved timetable can be removed, but individual editing is not implemented yet.
 
 ---
 
@@ -105,7 +125,7 @@ The iOS client follows the same security posture as the wider Gapwise ecosystem:
 - preserve campus/source identity rather than inventing location certainty;
 - make permissions narrow, understandable, and revocable.
 
-The current timetable store writes an atomically replaced JSON snapshot inside Application Support and applies iOS file protection. No account sync, end-to-end encryption, analytics, or map capability is implemented.
+The current timetable store writes an atomically replaced JSON snapshot inside Application Support and applies iOS file protection. Calendar import is performed on-device without networking, telemetry, or retention of the source file. No account sync, end-to-end encryption, analytics, or map capability is implemented.
 
 ---
 
@@ -120,13 +140,15 @@ cd ios
 
 Open `Gapwise.xcodeproj` in Xcode 16 or later, select the `Gapwise` scheme, and run it on an iPhone simulator or device. The shared scheme builds the app and runs `GapwiseTests`.
 
-The Foundation-only core and its tests also build on Linux:
+The Foundation-only core, import pipeline, and tests also build on Linux:
 
 ```bash
 swift test
 ```
 
 GitHub Actions runs those portable tests on Ubuntu and runs the complete unsigned iOS build and unit-test suite on a dynamically selected iPhone simulator on `macos-15`.
+
+Linux cannot compile or exercise SwiftUI, the document picker, Apple security-scoped URL behavior, or the iOS app target. Those remain Xcode/macOS validation responsibilities; Linux coverage is limited to the portable Foundation core and fixture-driven tests.
 
 ---
 

@@ -36,14 +36,21 @@ struct MeetingCard: View {
                         .background(Color.gapwiseAccent.opacity(0.12), in: Capsule())
                 }
 
-                Text("\(meeting.meetingType.shortName) \(meeting.meetingSection)")
+                if let courseTitle = meeting.courseTitle {
+                    Text(courseTitle)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(2)
+                }
+
+                Text(meeting.displaySection)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
                 if let location = meeting.location {
-                    Label(location.displayName, systemImage: "mappin")
+                    Label(location.displayName, systemImage: location.systemImageName)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
             }
         }
@@ -57,7 +64,7 @@ struct MeetingCard: View {
         let end = GapwiseFormatters.time(meeting.endTime, on: date, calendar: calendar)
         let location = meeting.location.map { ", \($0.displayName)" } ?? ""
         return
-            "\(meeting.courseCode.rawValue), \(meeting.meetingType.shortName) \(meeting.meetingSection), \(start) to \(end), \(meeting.campus.shortName)\(location)"
+            "\(meeting.courseCode.rawValue), \(meeting.displaySection), \(start) to \(end), \(meeting.campus.shortName)\(location)"
     }
 }
 

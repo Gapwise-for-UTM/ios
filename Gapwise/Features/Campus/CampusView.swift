@@ -13,7 +13,7 @@ struct CampusView: View {
                         set: { appModel.setCampusContext($0) }
                     )
                 ) {
-                    ForEach(Campus.allCases) { campus in
+                    ForEach(Campus.selectableCases) { campus in
                         Text(campus.shortName).tag(campus)
                     }
                 }

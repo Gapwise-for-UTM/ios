@@ -19,7 +19,8 @@ let package = Package(
         .testTarget(
             name: "GapwiseCoreTests",
             dependencies: ["GapwiseCore"],
-            path: "GapwiseTests/Core"
+            path: "GapwiseTests/Core",
+            resources: [.process("Fixtures")]
         ),
     ]
 )

@@ -120,7 +120,7 @@ extension Calendar {
     static var gapwiseToronto: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_CA")
-        calendar.timeZone = TimeZone(identifier: "America/Toronto") ?? .current
+        calendar.timeZone = TimeZone(identifier: "America/Toronto") ?? .gmt
         return calendar
     }
 }

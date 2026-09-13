@@ -26,9 +26,9 @@ struct WeekdayStrip: View {
             onSelect(date)
         } label: {
             VStack(spacing: 5) {
-                Text(date.formatted(.dateTime.weekday(.narrow)))
+                Text(GapwiseFormatters.narrowWeekday(date, calendar: calendar))
                     .font(.caption.weight(.medium))
-                Text(date.formatted(.dateTime.day()))
+                Text(GapwiseFormatters.dayNumber(date, calendar: calendar))
                     .font(.body.weight(isSelected ? .bold : .regular))
                 Circle()
                     .fill(isToday ? Color.gapwiseAccent : .clear)
@@ -43,7 +43,7 @@ struct WeekdayStrip: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+        .accessibilityLabel(GapwiseFormatters.fullDate(date, calendar: calendar))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

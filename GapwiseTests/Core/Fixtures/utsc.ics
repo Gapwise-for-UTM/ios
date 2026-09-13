@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Gapwise Tests//Synthetic Scarborough Schedule//EN
+X-WR-CALNAME:University of Toronto Scarborough
+BEGIN:VEVENT
+UID:utsc-csc110@example.invalid
+DTSTART;TZID=America/Toronto:20260916T130000
+DTEND;TZID=America/Toronto:20260916T150000
+RRULE:FREQ=WEEKLY;BYDAY=WE;COUNT=11
+SUMMARY:CSC110Y3 LAB0102 - Foundations of Computer Science
+LOCATION:IC 204
+END:VEVENT
+END:VCALENDAR
