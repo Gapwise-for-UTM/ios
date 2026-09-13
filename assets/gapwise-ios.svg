@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1080" role="img" aria-labelledby="title desc">
+  <title id="title">Gapwise for iOS</title>
+  <desc id="desc">The Gapwise deer mark inside a rounded iOS app icon frame with the iOS wordmark beneath it.</desc>
+  <defs>
+    <linearGradient id="gapwiseBlue" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#62B9FF"/><stop offset="100%" stop-color="#3E9CF7"/></linearGradient>
+    <filter id="blueGlow" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="13" result="blur"/><feFlood flood-color="#4EA7FE" flood-opacity="0.55" result="glowColor"/><feComposite in="glowColor" in2="blur" operator="in" result="softGlow"/><feMerge><feMergeNode in="softGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="7" result="blur"/><feFlood flood-color="#4EA7FE" flood-opacity="0.32" result="glowColor"/><feComposite in="glowColor" in2="blur" operator="in" result="softGlow"/><feMerge><feMergeNode in="softGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <path id="upper-left" d="M627 638 540 534c-21-19-47-32-75-49-47-29-68-77-68-132h31c2 32 13 63 34 87 6 6 12 12 20 18-3-14-3-27-1-39 2-13 6-24 12-33l25 13c-7 15-10 30-8 42 1 17 7 29 15 37 7 8 13 12 19 15l83 37Z"/>
+    <path id="lower-left" d="M627 692 522 558c-18-19-40-33-59-39-15-1-31-1-48-1 0 30 11 56 36 76 17 12 35 16 74 16v120c0 8 3 14 8 20l72 100c5 7 12 10 22 10Z"/>
+  </defs>
+  <g filter="url(#blueGlow)"><rect x="105" y="68" width="690" height="690" rx="145" fill="#05080C" stroke="url(#gapwiseBlue)" stroke-width="28"/></g>
+  <g fill="url(#gapwiseBlue)" filter="url(#softGlow)" transform="translate(-172.47292418772565 -179.72563176895306) scale(0.9927797833935018)"><use href="#upper-left"/><use href="#upper-left" transform="translate(1254 0) scale(-1 1)"/><use href="#lower-left"/><use href="#lower-left" transform="translate(1254 0) scale(-1 1)"/></g>
+  <g fill="url(#gapwiseBlue)" filter="url(#softGlow)" aria-label="iOS">
+    <circle cx="302" cy="916" r="19"/>
+    <rect x="284" y="958" width="36" height="116" rx="18"/>
+    <path fill-rule="evenodd" d="M452 880c-89 0-145 72-145 171s56 171 145 171 145-72 145-171-56-171-145-171Zm0 42c57 0 96 51 96 129s-39 129-96 129-96-51-96-129 39-129 96-129Z" transform="translate(0 -139) scale(1 .92)"/>
+    <path d="M681 833c-45 0-75 23-75 57 0 30 20 47 64 57l31 7c22 5 31 13 31 26 0 17-17 28-45 28-29 0-49-12-54-34h-48c4 48 42 76 100 76 59 0 97-29 97-73 0-34-21-53-67-64l-31-7c-20-5-29-12-29-24 0-15 15-25 37-25 24 0 41 10 47 29h47c-5-43-39-68-89-68Z"/>
+  </g>
+</svg>
