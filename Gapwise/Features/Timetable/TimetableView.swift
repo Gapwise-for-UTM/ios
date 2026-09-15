@@ -92,7 +92,7 @@ struct TimetableView: View {
             Spacer()
             Image(systemName: "calendar.badge.clock")
                 .font(.title2)
-                .foregroundStyle(.gapwiseAccent)
+                .foregroundStyle(Color.gapwiseAccent)
                 .accessibilityHidden(true)
         }
     }
