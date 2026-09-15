@@ -19,7 +19,7 @@ struct MeetingCard: View {
             .frame(minWidth: 68, alignment: .leading)
 
             RoundedRectangle(cornerRadius: 2)
-                .fill(isHighlighted ? Color.gapwiseSuccess : .gapwiseAccent)
+                .fill(isHighlighted ? Color.gapwiseSuccess : Color.gapwiseAccent)
                 .frame(width: 4)
                 .accessibilityHidden(true)
 
@@ -30,7 +30,7 @@ struct MeetingCard: View {
                     Spacer(minLength: GapwiseSpacing.compact)
                     Text(meeting.campus.shortName)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.gapwiseAccent)
+                        .foregroundStyle(Color.gapwiseAccent)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
                         .background(Color.gapwiseAccent.opacity(0.12), in: Capsule())
