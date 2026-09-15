@@ -70,7 +70,7 @@ struct RecurrenceRuleInterpreter: Sendable {
 
     private func parseDays(_ value: String, rawRule: String) throws -> Set<Weekday> {
         var days: Set<Weekday> = []
-        for token in value.split(separator: ",") {
+        for token in value.split(separator: ",", omittingEmptySubsequences: false) {
             let day: Weekday?
             switch token.uppercased() {
             case "SU": day = .sunday

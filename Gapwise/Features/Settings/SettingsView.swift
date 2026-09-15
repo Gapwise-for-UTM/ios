@@ -1,10 +1,8 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var appModel
     @State private var isConfirmingTimetableRemoval = false
-    @State private var isSelectingCalendar = false
 
     var body: some View {
         Form {
@@ -23,8 +21,13 @@ struct SettingsView: View {
             }
 
             Section("Timetable") {
+                if appModel.loadState == .failed {
+                    Text("Saved data could not be opened. Retry loading, or remove the saved timetable to start again.")
+                    Button("Retry Loading") { Task { await appModel.load() } }
+                }
+
                 Button {
-                    isSelectingCalendar = true
+                    appModel.requestTimetableImport()
                 } label: {
                     if appModel.isPreparingImport {
                         HStack {
@@ -35,7 +38,7 @@ struct SettingsView: View {
                         Label("Import Calendar File", systemImage: "square.and.arrow.down")
                     }
                 }
-                .disabled(appModel.isLoading || appModel.isPreparingImport || appModel.isSavingImport)
+                .disabled(!appModel.canImport)
 
                 LabeledContent("Saved meetings", value: "\(appModel.timetable.meetings.count)")
 
@@ -49,21 +52,13 @@ struct SettingsView: View {
                 Button("Remove Saved Timetable", role: .destructive) {
                     isConfirmingTimetableRemoval = true
                 }
-                .disabled(appModel.timetable.meetings.isEmpty)
+                .disabled(!appModel.canRemoveTimetable)
             }
 
-            Section("Campus Context") {
-                Picker(
-                    "Campus",
-                    selection: Binding(
-                        get: { appModel.preferences.campusContext },
-                        set: { appModel.setCampusContext($0) }
-                    )
-                ) {
-                    ForEach(Campus.selectableCases) { campus in
-                        Text(campus.shortName).tag(campus)
-                    }
-                }
+            Section("Campus") {
+                LabeledContent("Supported campus", value: "UTM")
+                Text("Class times are shown in Toronto time.")
+                    .foregroundStyle(.secondary)
             }
 
             Section("Privacy") {
@@ -105,36 +100,6 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .fileImporter(
-            isPresented: $isSelectingCalendar,
-            allowedContentTypes: [.gapwiseICalendar]
-        ) { result in
-            switch result {
-            case let .success(url):
-                Task { @MainActor in
-                    await appModel.prepareTimetableImport(from: url)
-                }
-            case let .failure(error):
-                let cocoaError = error as NSError
-                guard cocoaError.domain != NSCocoaErrorDomain || cocoaError.code != NSUserCancelledError else { return }
-                Task { @MainActor in
-                    appModel.alertMessage = "The calendar picker could not open the selected file."
-                }
-            }
-        }
-        .sheet(
-            isPresented: Binding(
-                get: { appModel.pendingImportPlan != nil },
-                set: { isPresented in
-                    if !isPresented { appModel.cancelPendingImport() }
-                }
-            )
-        ) {
-            if let plan = appModel.pendingImportPlan {
-                TimetableImportPreviewView(plan: plan)
-                    .environment(appModel)
-            }
-        }
         .confirmationDialog(
             "Remove your saved timetable?",
             isPresented: $isConfirmingTimetableRemoval,
@@ -147,7 +112,7 @@ struct SettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This removes the timetable stored on this device.")
+            Text("This permanently removes the local timetable, import history, and saved removal choices. The original calendar file is unchanged.")
         }
     }
 }

@@ -112,7 +112,7 @@ struct ScheduleCalculator: Sendable {
         if lhs.endTime != rhs.endTime { return lhs.endTime < rhs.endTime }
         if lhs.courseCode != rhs.courseCode { return lhs.courseCode < rhs.courseCode }
         if lhs.campus != rhs.campus { return lhs.campus.rawValue < rhs.campus.rawValue }
-        return lhs.id.sourceIdentifier < rhs.id.sourceIdentifier
+        return lhs.id < rhs.id
     }
 }
 

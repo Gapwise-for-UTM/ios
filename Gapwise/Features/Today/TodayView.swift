@@ -23,14 +23,13 @@ struct TodayView: View {
                     .font(.title2.weight(.bold))
                     .accessibilityAddTraits(.isHeader)
 
-                if appModel.isLoading && appModel.timetable.meetings.isEmpty {
-                    ProgressView("Loading today")
-                        .frame(maxWidth: .infinity, minHeight: 220)
+                if appModel.loadState != .ready || appModel.timetable.meetings.isEmpty {
+                    TimetableAvailabilityView()
                 } else if meetings.isEmpty {
                     ContentUnavailableView(
                         "No Classes Today",
                         systemImage: "sun.max",
-                        description: Text("Your day is clear.")
+                        description: Text("There are no classes in your saved timetable for today.")
                     )
                     .frame(maxWidth: .infinity, minHeight: 220)
                 } else {
@@ -76,16 +75,15 @@ struct TodayView: View {
                 Text(meeting.courseCode.rawValue)
                     .font(.title2.weight(.bold))
                 if let courseTitle = meeting.courseTitle {
-                    Text(courseTitle)
-                        .font(.subheadline.weight(.medium))
-                        .lineLimit(2)
+                Text(courseTitle)
+                    .font(.subheadline.weight(.medium))
                 }
                 Text(meeting.displaySection)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: GapwiseSpacing.standard) {
+            VStack(alignment: .leading, spacing: GapwiseSpacing.compact) {
                 Label(
                     timeRange(for: meeting, on: now),
                     systemImage: "clock"

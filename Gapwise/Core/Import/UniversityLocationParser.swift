@@ -1,30 +1,50 @@
 import Foundation
 
 enum UniversityBuildingCatalog {
-    // This is intentionally a small classroom-oriented subset of codes published by UTM.
-    // Source: https://www.utm.utoronto.ca/facilities/notices/by-building
-    // Campus map: https://www.utm.utoronto.ca/future-students/sites/files/future-students/documents/2025-03/MOH25_CampusMap.pdf
+    // Recognition-only snapshot of Gapwise Data. No geometry, entrance, floor or access claims.
+    // https://github.com/Gapwise-for-UTM/data/blob/4325a2fa05e54c5ae69355c5fca2d2312485850c/data/utm/building-registry.ts
+    // Public code aliases come from normalizePublicBuildingCode, not officialCodes evidence.
     static let utmBuildingNames: [String: String] = [
-        "AX": "Academic Annex",
-        "CC": "Communication, Culture, and Technology Building",
-        "CCT": "Communication, Culture, and Technology Building",
-        "DH": "Deerfield Hall",
-        "DV": "William G. Davis Building",
-        "DW": "Erindale Studio Theatre",
-        "HB": "Terrence Donnelly Health Sciences Complex",
-        "HSC": "Terrence Donnelly Health Sciences Complex",
-        "HM": "Hazel McCallion Academic Learning Centre",
-        "IB": "Instructional Centre",
-        "KN": "Kaneff Centre and Innovation Complex",
         "MN": "Maanjiwe nendamowinan",
-        "RA": "Recreation, Athletics and Wellness Centre",
+        "DH": "Deerfield Hall",
+        "IB": "Instructional Centre",
+        "DV": "William G. Davis Building",
+        "CCT": "Communication, Culture and Technology Building",
+        "HM": "Hazel McCallion Academic Learning Centre",
+        "KN": "Kaneff Centre",
+        "IC": "Innovation Complex",
         "RAWC": "Recreation, Athletics and Wellness Centre",
-        "SB": "Science Building",
         "XR": "Student Centre",
+        "HB": "Terrence Donnelly Health Sciences Complex",
+        "AX": "Academic Annex",
+        "WC": "Alumni House",
+        "CUP": "Central Utilities Plant",
+        "DW": "Erindale Studio Theatre",
+        "FCSH": "Forensic Crime Scene House",
+        "GF": "Grounds Building",
+        "NSB": "New Science Building",
+        "PL": "Paleomagnetism Lab",
+        "BG": "Research Greenhouse",
+        "LH": "The Principal's Residence: Lislehurst",
+        "EH": "Erindale Hall",
+        "LL": "Leacock Lane",
+        "MV": "MaGrath Valley",
+        "MC": "McLuhan Court",
+        "OPH": "Oscar Peterson Hall",
+        "PP": "Putnam Place",
+        "RIH": "Roy Ivor Hall",
+        "SW": "Schreiberwood",
+        "NRB": "New Residence Building",
     ]
+    private static let publicAliases = ["CC": "CCT", "RA": "RAWC", "R": "LL", "SB": "NSB"]
+
+    static func canonicalCode(_ code: String) -> String? {
+        let normalized = code.uppercased()
+        return utmBuildingNames[normalized] != nil ? normalized : publicAliases[normalized]
+    }
 
     static func isKnownUTMCode(_ code: String) -> Bool {
-        utmBuildingNames[code.uppercased()] != nil
+        canonicalCode(code) != nil
     }
 }
 
@@ -38,7 +58,8 @@ struct UniversityLocationParser: Sendable {
         if containsAny(normalized, values: ["ONLINE", "REMOTE", "VIRTUAL", "ZOOM", "ASYNCHRONOUS"]) {
             return MeetingLocation(displayName: "Online", rawLocation: trimmed, kind: .online)
         }
-        if containsAny(normalized, values: ["TBA", "TBD", "TO BE ANNOUNCED", "TO BE DETERMINED"]) {
+        if normalized.hasPrefix("ZZ") || normalized == "N/A"
+            || containsAny(normalized, values: ["TBA", "TBD", "TO BE ANNOUNCED", "TO BE DETERMINED"]) {
             return MeetingLocation(displayName: "TBA", rawLocation: trimmed, kind: .toBeAnnounced)
         }
 
@@ -56,7 +77,8 @@ struct UniversityLocationParser: Sendable {
     }
 
     private func containsAny(_ value: String, values: [String]) -> Bool {
-        values.contains { value.contains($0) }
+        let words = Set(value.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).map(String.init))
+        return values.contains { $0.contains(" ") ? value.contains($0) : words.contains($0) }
     }
 
     private func buildingAndRoom(in location: String) -> (building: String, room: String)? {
@@ -67,13 +89,13 @@ struct UniversityLocationParser: Sendable {
             let token = letterPrefix.uppercased()
             let suffix = rawToken.dropFirst(letterPrefix.count)
 
-            if (2...4).contains(token.count), suffix.first?.isNumber == true {
-                return (token, String(suffix))
+            if let canonicalCode = UniversityBuildingCatalog.canonicalCode(token), suffix.first?.isNumber == true {
+                return (canonicalCode, String(suffix))
             }
 
             guard
-                rawToken == rawToken.uppercased() || UniversityBuildingCatalog.isKnownUTMCode(token),
-                (2...4).contains(token.count),
+                let canonicalCode = UniversityBuildingCatalog.canonicalCode(token),
+                suffix.isEmpty,
                 index + 1 < rawTokens.count
             else {
                 continue
@@ -81,7 +103,7 @@ struct UniversityLocationParser: Sendable {
 
             let nextToken = rawTokens[index + 1].trimmingCharacters(in: .punctuationCharacters)
             if nextToken.first?.isNumber == true {
-                return (token, nextToken)
+                return (canonicalCode, nextToken)
             }
         }
 

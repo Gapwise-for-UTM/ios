@@ -28,19 +28,35 @@ enum ImportedDocumentReader {
             }
 
             do {
-                let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
-                if values.isRegularFile == false {
-                    throw ImportedDocumentReadError.notAFile
-                }
-                if let fileSize = values.fileSize, fileSize > maximumByteCount {
-                    throw ImportedDocumentReadError.tooLarge(maximumBytes: maximumByteCount)
-                }
+                // Coordinate with Files/iCloud providers while the security scope is active.
+                var coordinationError: NSError?
+                var result: Result<Data, Error>?
+                NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { fileURL in
+                    result = Result {
+                        let values = try fileURL.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+                        guard values.isRegularFile == true else { throw ImportedDocumentReadError.notAFile }
+                        if let fileSize = values.fileSize, fileSize > maximumByteCount {
+                            throw ImportedDocumentReadError.tooLarge(maximumBytes: maximumByteCount)
+                        }
 
-                let data = try Data(contentsOf: url)
-                guard data.count <= maximumByteCount else {
-                    throw ImportedDocumentReadError.tooLarge(maximumBytes: maximumByteCount)
+                        let handle = try FileHandle(forReadingFrom: fileURL)
+                        defer { try? handle.close() }
+                        // Read at most the limit plus one byte even if the file grows after metadata was read.
+                        var data = Data()
+                        while data.count <= maximumByteCount {
+                            let chunk = try handle.read(upToCount: min(65_536, maximumByteCount + 1 - data.count))
+                            guard let chunk, !chunk.isEmpty else { break }
+                            data.append(chunk)
+                        }
+                        guard data.count <= maximumByteCount else {
+                            throw ImportedDocumentReadError.tooLarge(maximumBytes: maximumByteCount)
+                        }
+                        return data
+                    }
                 }
-                return data
+                if let coordinationError { throw coordinationError }
+                guard let result else { throw ImportedDocumentReadError.unreadable }
+                return try result.get()
             } catch let error as ImportedDocumentReadError {
                 throw error
             } catch {

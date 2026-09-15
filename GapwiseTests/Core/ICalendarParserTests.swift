@@ -133,6 +133,29 @@ final class ICalendarParserTests: XCTestCase, @unchecked Sendable {
         }
     }
 
+    func testInvalidDatesAndDSTGapCannotNormalizeIntoDifferentMeetings() {
+        let invalid = ["20260230T100000", "20260914T240000", "20260914T106000", "20260914T100060",
+            "20260914T100000junk", "20260914T100000+0400", "20260014T100000", "20260308T023000"]
+        for value in invalid {
+            guard case .failure = CalendarDateParser.parse(value: value, parameters: ["TZID": "America/Toronto"]) else {
+                XCTFail("Expected rejection of \(value)")
+                continue
+            }
+        }
+    }
+
+    func testTimezoneIdentifiersMustMatchAnActualIdentifier() {
+        guard case .failure(.unknownTimeZone) = CalendarDateParser.parse(
+            value: "20260914T100000", parameters: ["TZID": "Bogus/America/Toronto"]) else {
+            return XCTFail("Substring matches cannot establish timezone identity")
+        }
+    }
+
+    func testAmbiguousCalendarMetadataIsRejected() {
+        let content = "BEGIN:VCALENDAR\nX-WR-CALNAME:first\nX-WR-CALNAME:second\nEND:VCALENDAR"
+        XCTAssertThrowsError(try ICalendarParser().parse(Data(content.utf8)))
+    }
+
     private func parsedDate(_ value: String, parameters: [String: String]) throws -> Date {
         let parsed = CalendarDateParser.parse(value: value, parameters: parameters)
         switch parsed {

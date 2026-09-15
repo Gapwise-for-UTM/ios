@@ -1,6 +1,7 @@
 import Foundation
 
 enum CampusDetectionEvidence: Equatable, Sendable {
+    case courseCodeSuffix
     case buildingCode(String)
     case calendarMetadata
     case conflictingSignals
@@ -20,8 +21,22 @@ struct CampusDetector: Sendable {
         productIdentifier: String?,
         location: MeetingLocation?,
         description: String?,
-        importContext: Campus? = nil
+        importContext: Campus? = nil,
+        courseCode: CourseCode? = nil
     ) -> CampusDetection {
+        // Gapwise core timetable-types.ts owns this U of T course-code convention.
+        // A UTM import preference cannot relabel a known non-UTM course.
+        if let suffix = courseCode?.rawValue.last {
+            let campus: Campus?
+            switch suffix {
+            case "5": campus = .utm
+            case "1": campus = .utsg
+            case "3": campus = .utsc
+            default: campus = nil
+            }
+            if let campus { return CampusDetection(campus: campus, evidence: .courseCodeSuffix) }
+            return CampusDetection(campus: .unknown, evidence: .unresolved)
+        }
         if let importContext, importContext != .unknown {
             return CampusDetection(campus: importContext, evidence: .importContext)
         }

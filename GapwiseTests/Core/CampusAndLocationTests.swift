@@ -20,6 +20,25 @@ final class CampusAndLocationTests: XCTestCase, @unchecked Sendable {
         XCTAssertNil(parser.parse("  "))
     }
 
+    func testLocationCodesUseCanonicalRecognitionWithoutGuessingUnknownIdentity() {
+        let parser = UniversityLocationParser()
+        XCTAssertEqual(parser.parse("CC 1080")?.buildingCode, "CCT")
+        XCTAssertEqual(parser.parse("SB 101")?.buildingCode, "NSB")
+        XCTAssertNil(parser.parse("HSC 101")?.buildingCode)
+        XCTAssertNil(parser.parse("XY 101")?.buildingCode)
+        XCTAssertEqual(parser.parse("XY 101")?.rawLocation, "XY 101")
+        XCTAssertEqual(parser.parse("ZZ TBA")?.kind, .toBeAnnounced)
+        XCTAssertEqual(parser.parse("N/A")?.kind, .toBeAnnounced)
+        XCTAssertEqual(UniversityBuildingCatalog.utmBuildingNames["KN"], "Kaneff Centre")
+        XCTAssertEqual(UniversityBuildingCatalog.utmBuildingNames["IC"], "Innovation Complex")
+    }
+
+    func testCourseCampusSuffixCannotBeOverriddenByUTMImportContext() {
+        let detection = CampusDetector().detect(calendarName: "UTM", productIdentifier: nil,
+            location: nil, description: nil, importContext: .utm, courseCode: CourseCode(rawValue: "MAT157Y1"))
+        XCTAssertEqual(detection, CampusDetection(campus: .utsg, evidence: .courseCodeSuffix))
+    }
+
     func testKnownUTMBuildingCodesProvideExplainableCampusEvidence() throws {
         let location = try XCTUnwrap(UniversityLocationParser().parse("DV 2072"))
         let detection = CampusDetector().detect(

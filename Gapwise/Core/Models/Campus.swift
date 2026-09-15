@@ -8,7 +8,9 @@ enum Campus: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
 
     var id: Self { self }
 
-    static let selectableCases: [Self] = [.utm, .utsg, .utsc]
+    // Legacy campus cases remain decodable, but the native product currently supports UTM only.
+    static let selectableCases: [Self] = [.utm]
+    static let editableCases: [Self] = [.utm, .unknown]
 
     var shortName: String {
         switch self {
@@ -25,6 +27,13 @@ enum Campus: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
         case .utsg: "University of Toronto St. George"
         case .utsc: "University of Toronto Scarborough"
         case .unknown: "Campus not determined"
+        }
+    }
+
+    var selectionName: String {
+        switch self {
+        case .unknown: "Unknown / Unspecified"
+        default: shortName
         }
     }
 }

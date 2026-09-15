@@ -11,6 +11,6 @@ struct TimetableImportService: Sendable {
     ) throws -> TimetableImportPlan {
         let document = try ICalendarParser().parse(data)
         let draft = try TimetableImporter().interpret(document, suggestedFileName: suggestedFileName)
-        return TimetableReconciler().plan(draft: draft, existingSnapshot: existingSnapshot, importedAt: importedAt)
+        return try TimetableReconciler().plan(draft: draft, existingSnapshot: existingSnapshot, importedAt: importedAt)
     }
 }

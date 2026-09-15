@@ -43,7 +43,7 @@ import Foundation
                     sourceID: "preview-utm-demo101-lec0101"
                 ),
                 meeting(
-                    campus: .utsg,
+                    campus: .utm,
                     code: "DEMO204",
                     title: "Sample Studio",
                     term: term,
@@ -54,7 +54,7 @@ import Foundation
                     start: (13, 0),
                     end: (15, 0),
                     location: "Sample Lab B",
-                    sourceID: "preview-utsg-demo204-pra0201"
+                    sourceID: "preview-utm-demo204-pra0201"
                 ),
                 meeting(
                     campus: .utm,

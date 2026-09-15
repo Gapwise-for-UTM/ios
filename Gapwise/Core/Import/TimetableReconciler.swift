@@ -1,54 +1,74 @@
 import Foundation
 
 struct TimetableReconciler: Sendable {
+    // Only an exact source + UID match is reconciled. A changed UID remains a new meeting,
+    // avoiding destructive guesses based on mutable course labels, rooms, or times.
     func plan(
         draft: TimetableImportDraft,
         existingSnapshot: TimetableSnapshot,
         importedAt: Date
-    ) -> TimetableImportPlan {
-        var meetings = existingSnapshot.meetings
-        var indexesByKey: [ImportedMeetingKey: Int] = [:]
-
-        for (index, meeting) in meetings.enumerated() {
-            guard let key = ImportedMeetingKey(meeting) else { continue }
-            if indexesByKey[key] == nil {
-                indexesByKey[key] = index
-            }
+    ) throws -> TimetableImportPlan {
+        let existingSourceMeetings = existingSnapshot.meetings.filter {
+            $0.origin.kind == .calendarImport && $0.origin.sourceIdentifier == draft.sourceIdentifier
+        }
+        let meetingsFromOtherSources = existingSnapshot.meetings.filter {
+            $0.origin.kind != .calendarImport || $0.origin.sourceIdentifier != draft.sourceIdentifier
+        }
+        let existingByKey = existingSourceMeetings.reduce(into: [ImportedMeetingIdentity: CourseMeeting]()) {
+            result, meeting in
+            guard let key = ImportedMeetingIdentity(meeting), result[key] == nil else { return }
+            result[key] = meeting
         }
 
         var added = 0
         var updated = 0
         var unchanged = 0
-        var incomingKeys: Set<ImportedMeetingKey> = []
+        var suppressed = 0
+        var incomingKeys: Set<ImportedMeetingIdentity> = []
+        var previewMeetings: [CourseMeeting] = []
 
-        for meeting in draft.meetings {
-            guard let key = ImportedMeetingKey(meeting) else { continue }
-            incomingKeys.insert(key)
+        for incoming in draft.meetings {
+            guard let key = ImportedMeetingIdentity(incoming) else { continue }
+            guard incomingKeys.insert(key).inserted else { continue }
 
-            if let existingIndex = indexesByKey[key] {
-                if meetings[existingIndex] == meeting {
+            if existingSnapshot.suppressedImportedMeetings.contains(key) {
+                suppressed += 1
+                continue
+            }
+
+            if let existing = existingByKey[key] {
+                let merged = try existing.mergingImportedSource(incoming)
+                previewMeetings.append(merged)
+                if existing.hasSameImportedSource(as: incoming) {
                     unchanged += 1
                 } else {
-                    meetings[existingIndex] = meeting
                     updated += 1
                 }
             } else {
-                indexesByKey[key] = meetings.count
-                meetings.append(meeting)
+                previewMeetings.append(incoming)
                 added += 1
             }
         }
 
-        let retained = meetings.lazy.filter { meeting in
-            guard
-                meeting.origin.kind == .calendarImport,
-                meeting.origin.sourceIdentifier == draft.sourceIdentifier,
-                let key = ImportedMeetingKey(meeting)
-            else {
-                return false
-            }
-            return !incomingKeys.contains(key)
+        let retainedMeetings = existingSourceMeetings.filter { meeting in
+            guard let key = ImportedMeetingIdentity(meeting), !incomingKeys.contains(key) else { return false }
+            return !draft.allowsMissingEventRemoval || draft.retainedEventUIDs.contains(key.eventUID)
+        }
+        let retainedKeys = Set(retainedMeetings.compactMap(ImportedMeetingIdentity.init))
+        let removedFromSource = existingByKey.keys.lazy.filter {
+            !incomingKeys.contains($0) && !retainedKeys.contains($0)
         }.count
+        let sources = upsertingSource(
+            TimetableSource(
+                id: draft.sourceIdentifier,
+                kind: .calendarFile,
+                displayName: draft.sourceName,
+                lastImportedAt: importedAt
+            ),
+            into: existingSnapshot.sources
+        )
+        let resultingMeetings = meetingsFromOtherSources + previewMeetings + retainedMeetings
+        let unresolved = TimetableReviewService().unresolvedCount(in: previewMeetings)
 
         return TimetableImportPlan(
             draft: draft,
@@ -56,25 +76,28 @@ struct TimetableReconciler: Sendable {
                 added: added,
                 updated: updated,
                 unchanged: unchanged,
-                retainedFromPreviousImport: retained
+                removedFromSource: removedFromSource,
+                suppressed: suppressed,
+                unresolved: unresolved,
+                retainedForReview: retainedMeetings.count
             ),
-            resultingSnapshot: TimetableSnapshot(meetings: meetings, lastModified: importedAt)
+            previewMeetings: previewMeetings,
+            resultingSnapshot: TimetableSnapshot(
+                meetings: resultingMeetings,
+                sources: sources,
+                suppressedImportedMeetings: existingSnapshot.suppressedImportedMeetings,
+                lastModified: importedAt
+            )
         )
     }
-}
 
-private struct ImportedMeetingKey: Hashable {
-    let importSourceIdentifier: String
-    let eventUID: String
-
-    init?(_ meeting: CourseMeeting) {
-        guard
-            meeting.origin.kind == .calendarImport,
-            let sourceIdentifier = meeting.origin.sourceIdentifier
-        else {
-            return nil
+    private func upsertingSource(_ source: TimetableSource, into sources: [TimetableSource]) -> [TimetableSource] {
+        var updated = sources.filter { $0.id != source.id }
+        updated.append(source)
+        return updated.sorted { lhs, rhs in
+            if lhs.lastImportedAt != rhs.lastImportedAt { return lhs.lastImportedAt > rhs.lastImportedAt }
+            if lhs.displayName != rhs.displayName { return lhs.displayName < rhs.displayName }
+            return lhs.id < rhs.id
         }
-        importSourceIdentifier = sourceIdentifier
-        eventUID = meeting.id.sourceIdentifier
     }
 }

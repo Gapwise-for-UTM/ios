@@ -36,6 +36,10 @@ final class RecurrenceRuleInterpreterTests: XCTestCase, @unchecked Sendable {
             "FREQ=WEEKLY;BYDAY=MO;BYDAY=TU;COUNT=10",
             "FREQ=DAILY;COUNT=10",
             "FREQ=WEEKLY;INTERVAL=2;COUNT=10",
+            "FREQ=WEEKLY;BYDAY=MO,;COUNT=10",
+            "FREQ=WEEKLY;BYDAY=,MO;COUNT=10",
+            "FREQ=WEEKLY;BYDAY=MO;COUNT=0",
+            "FREQ=WEEKLY;BYDAY=MO;UNTIL=20260230",
         ]
 
         for rule in rules {

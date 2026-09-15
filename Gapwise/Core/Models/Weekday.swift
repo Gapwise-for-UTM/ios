@@ -23,6 +23,18 @@ enum Weekday: Int, CaseIterable, Codable, Hashable, Sendable {
         }
     }
 
+    var fullName: String {
+        switch self {
+        case .sunday: "Sunday"
+        case .monday: "Monday"
+        case .tuesday: "Tuesday"
+        case .wednesday: "Wednesday"
+        case .thursday: "Thursday"
+        case .friday: "Friday"
+        case .saturday: "Saturday"
+        }
+    }
+
     init?(date: Date, calendar: Calendar) {
         self.init(rawValue: calendar.component(.weekday, from: date))
     }

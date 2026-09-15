@@ -28,14 +28,18 @@ struct TimetableView: View {
                     .font(.title3.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
 
-                if appModel.isLoading && appModel.timetable.meetings.isEmpty {
-                    ProgressView("Loading timetable")
-                        .frame(maxWidth: .infinity, minHeight: 180)
+                if appModel.loadState != .ready || appModel.timetable.meetings.isEmpty {
+                    TimetableAvailabilityView()
                 } else if meetings.isEmpty {
                     emptyState(hasSavedMeetings: !appModel.timetable.meetings.isEmpty)
                 } else {
                     ForEach(meetings) { meeting in
-                        MeetingCard(meeting: meeting, date: selectedDate)
+                        NavigationLink {
+                            MeetingDetailView(meetingID: meeting.id)
+                        } label: {
+                            MeetingCard(meeting: meeting, date: selectedDate)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -66,6 +70,12 @@ struct TimetableView: View {
                 } label: {
                     Label("Next week", systemImage: "chevron.right")
                 }
+            }
+            ToolbarItem(placement: .bottomBar) {
+                Button { appModel.requestTimetableImport() } label: {
+                    Label("Import Calendar", systemImage: "square.and.arrow.down")
+                }
+                .disabled(!appModel.canImport)
             }
         }
     }

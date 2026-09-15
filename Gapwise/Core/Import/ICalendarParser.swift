@@ -1,8 +1,8 @@
 import Foundation
 
 struct ICalendarParser: Sendable {
-    static let maximumByteCount = 5 * 1_048_576
-    static let maximumEventCount = 10_000
+    static let maximumByteCount = 2 * 1_048_576
+    static let maximumEventCount = 2_000
 
     private static let maximumComponentDepth = 32
     private static let maximumUnfoldedLineByteCount = 65_536
@@ -49,6 +49,8 @@ struct ICalendarParser: Sendable {
                         throw TimetableImportError.malformedCalendar
                     }
                     sawCalendar = true
+                } else if stack.isEmpty {
+                    throw TimetableImportError.malformedCalendar
                 } else if component == "VEVENT" {
                     guard stack == ["VCALENDAR"], eventBuilder == nil else {
                         throw TimetableImportError.malformedCalendar
@@ -81,8 +83,16 @@ struct ICalendarParser: Sendable {
 
             if stack == ["VCALENDAR"] {
                 switch line.name {
-                case "X-WR-CALNAME": calendarName = Self.unescapeText(line.value)
-                case "PRODID": productIdentifier = line.value.trimmingCharacters(in: .whitespacesAndNewlines)
+                case "X-WR-CALNAME":
+                    guard calendarName == nil, !line.hasMalformedParameters else {
+                        throw TimetableImportError.malformedCalendar
+                    }
+                    calendarName = Self.unescapeText(line.value)
+                case "PRODID":
+                    guard productIdentifier == nil, !line.hasMalformedParameters else {
+                        throw TimetableImportError.malformedCalendar
+                    }
+                    productIdentifier = line.value.trimmingCharacters(in: .whitespacesAndNewlines)
                 default: break
                 }
             } else if stack == ["VCALENDAR", "VEVENT"] {
@@ -286,6 +296,9 @@ private struct EventBuilder {
         case "DTSTART": start = uniqueTemporalValue(current: start, line: line)
         case "DTEND": end = uniqueTemporalValue(current: end, line: line)
         case "RRULE":
+            if line.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                issues.append(.malformedProperty(line.name))
+            }
             recurrenceRule = uniqueValue(current: recurrenceRule, proposed: line.value, propertyName: line.name)
         case "EXDATE", "RDATE", "RECURRENCE-ID": unsupportedRecurrenceProperties.insert(line.name)
         case "STATUS":

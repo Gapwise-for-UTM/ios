@@ -35,29 +35,34 @@ actor JSONTimetableRepository: TimetableRepository {
     }
 
     func load() async throws -> TimetableSnapshot {
-        guard fileManager.fileExists(atPath: fileURL.path) else { return .empty }
-        let data = try Data(contentsOf: fileURL)
-        return try decoder.decode(TimetableSnapshot.self, from: data)
+        do {
+            let data = try Data(contentsOf: fileURL)
+            return try decoder.decode(TimetableSnapshot.self, from: data)
+        } catch CocoaError.fileReadNoSuchFile {
+            return .empty
+        }
     }
 
     func save(_ snapshot: TimetableSnapshot) async throws {
+        let data = try encoder.encode(snapshot)
         try fileManager.createDirectory(
             at: fileURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
-        let data = try encoder.encode(snapshot)
-        try data.write(to: fileURL, options: .atomic)
-
         #if os(iOS)
-            try fileManager.setAttributes(
-                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-                ofItemAtPath: fileURL.path
+            try data.write(
+                to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
             )
+        #else
+            try data.write(to: fileURL, options: .atomic)
         #endif
     }
 
     func clear() async throws {
-        guard fileManager.fileExists(atPath: fileURL.path) else { return }
-        try fileManager.removeItem(at: fileURL)
+        do {
+            try fileManager.removeItem(at: fileURL)
+        } catch CocoaError.fileNoSuchFile {
+            return
+        }
     }
 }

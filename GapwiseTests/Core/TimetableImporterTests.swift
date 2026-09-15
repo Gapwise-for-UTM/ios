@@ -50,24 +50,21 @@ final class TimetableImporterTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(nextClass?.timing, .upcoming(minutesUntil: 30))
     }
 
-    func testCampusSpecificSchedulesRemainCampusQualified() throws {
-        let utsg = try importFixture("utsg")
-        let utsc = try importFixture("utsc")
-
-        XCTAssertEqual(utsg.meetings.map(\.campus), [.utsg])
-        XCTAssertEqual(utsc.meetings.map(\.campus), [.utsc])
-        XCTAssertEqual(try XCTUnwrap(utsc.meetings.first).meetingType, .practical)
+    func testNonUTMOnlySchedulesProduceNoSupportedEvents() {
+        for name in ["utsg", "utsc"] {
+            XCTAssertThrowsError(try importFixture(name)) { error in
+                XCTAssertEqual(error as? TimetableImportError, .noSupportedEvents)
+            }
+        }
     }
 
-    func testMixedCampusImportPreservesIdenticalCourseCodes() throws {
+    func testMixedCampusImportKeepsUTMAndUnresolvedEventsAndExplainsOtherSkips() throws {
         let draft = try importFixture("mixed-campus")
-        let matchingMeetings = draft.meetings.filter { $0.courseCode.rawValue == "MAT157Y5" }
-
-        XCTAssertEqual(draft.meetings.count, 4)
+        XCTAssertEqual(draft.meetings.count, 2)
         XCTAssertEqual(draft.ignoredEventCount, 1)
         XCTAssertEqual(draft.unresolvedCampusCount, 1)
-        XCTAssertEqual(Set(matchingMeetings.map(\.campus)), [.utm, .utsg])
-        XCTAssertEqual(Set(matchingMeetings.map(\.id)).count, 2)
+        XCTAssertEqual(Set(draft.meetings.map(\.campus)), [.utm, .unknown])
+        XCTAssertEqual(draft.skippedEvents.map(\.reason), [.unsupportedCampus, .unsupportedCampus])
     }
 
     func testMalformedAndUnsupportedEventsAreSkippedWithoutDiscardingValidMeetings() throws {
@@ -202,6 +199,74 @@ final class TimetableImporterTests: XCTestCase, @unchecked Sendable {
 
         XCTAssertEqual(draft.meetings.map(\.courseCode.rawValue), ["ECO101H5"])
         XCTAssertEqual(reasons, [.allDayEvent, .cancelled, .missingUID, .missingEndTime])
+    }
+
+    func testConflictingUIDsNeverChooseAnArbitraryFirstEvent() throws {
+        let first = event(uid: "conflict", codeAndSection: "MAT157Y5 LEC0101", recurrence: "")
+        let changed = first.replacingOccurrences(of: "T100000", with: "T103000")
+        let valid = event(uid: "valid", codeAndSection: "CSC108H5 TUT0101", recurrence: "")
+        for events in [[first, changed, valid], [changed, valid, first]] {
+            let document = try ICalendarParser().parse(Data(calendarWithEvents(events).utf8))
+            let draft = try TimetableImporter().interpret(document, suggestedFileName: "schedule.ics")
+            XCTAssertEqual(draft.meetings.map(\.id.sourceIdentifier), ["valid"])
+            XCTAssertEqual(draft.skippedEvents.map(\.reason), [.conflictingUID, .conflictingUID])
+            XCTAssertEqual(draft.retainedEventUIDs, ["conflict"])
+        }
+    }
+
+    func testDetachedCancelledOccurrenceDoesNotSilentlyImportItsUnmodifiedMaster() throws {
+        let master = event(uid: "series", codeAndSection: "MAT157Y5 LEC0101", recurrence: "RRULE:FREQ=WEEKLY;COUNT=10")
+        let exception = "BEGIN:VEVENT\nUID:series\nRECURRENCE-ID:20260921T100000\nSTATUS:CANCELLED\nEND:VEVENT"
+        let valid = event(uid: "valid", codeAndSection: "CSC108H5 TUT0101", recurrence: "")
+        let document = try ICalendarParser().parse(Data(calendarWithEvents([master, exception, valid]).utf8))
+        let draft = try TimetableImporter().interpret(document, suggestedFileName: nil)
+        XCTAssertEqual(draft.meetings.map(\.id.sourceIdentifier), ["valid"])
+        XCTAssertEqual(draft.retainedEventUIDs, ["series"])
+    }
+
+    func testRecurringUTCEventsAreSkippedBecauseTorontoWeeklyTimesCannotRepresentTheirDSTShift() throws {
+        let utc = event(uid: "utc", codeAndSection: "MAT157Y5 LEC0101", recurrence: "RRULE:FREQ=WEEKLY;COUNT=20")
+            .replacingOccurrences(of: ";TZID=America/Toronto", with: "")
+            .replacingOccurrences(of: "T100000", with: "T100000Z")
+            .replacingOccurrences(of: "T110000", with: "T110000Z")
+        let valid = event(uid: "valid", codeAndSection: "CSC108H5 TUT0101", recurrence: "")
+        let document = try ICalendarParser().parse(Data(calendarWithEvents([utc, valid]).utf8))
+        let draft = try TimetableImporter().interpret(document, suggestedFileName: nil)
+        XCTAssertEqual(draft.skippedEvents.map(\.reason), [.unsupportedTimeZoneRecurrence])
+        XCTAssertEqual(draft.meetings.count, 1)
+    }
+
+    func testMalformedExceptionAndEmptyRuleCannotBecomeInventedWeeklyOrSingleMeetings() throws {
+        let badException = event(uid: "bad-exception", codeAndSection: "MAT157Y5 LEC0101",
+            recurrence: "RRULE:FREQ=WEEKLY;COUNT=10\nEXDATE;BROKEN:20260921T100000")
+        let emptyRule = event(uid: "empty-rule", codeAndSection: "MAT157Y5 TUT0101", recurrence: "RRULE:")
+        let valid = event(uid: "valid", codeAndSection: "CSC108H5 TUT0101", recurrence: "")
+        let document = try ICalendarParser().parse(Data(calendarWithEvents([badException, emptyRule, valid]).utf8))
+        let draft = try TimetableImporter().interpret(document, suggestedFileName: nil)
+        XCTAssertEqual(draft.meetings.map(\.id.sourceIdentifier), ["valid"])
+        XCTAssertEqual(draft.skippedEvents.map(\.reason), [.malformedRequiredProperty, .malformedRequiredProperty])
+    }
+
+    func testFileRenameDoesNotChangeMetadataLessSourceIdentity() throws {
+        let content = calendarWithEvents([event(uid: "same", codeAndSection: "MAT157Y5 LEC0101", recurrence: "")])
+            .replacingOccurrences(of: "X-WR-CALNAME:UTM Timetable\n", with: "")
+        let document = try ICalendarParser().parse(Data(content.utf8))
+        let first = try TimetableImporter().interpret(document, suggestedFileName: "schedule.ics")
+        let second = try TimetableImporter().interpret(document, suggestedFileName: "schedule (2).ics")
+        XCTAssertEqual(first.sourceIdentifier, second.sourceIdentifier)
+        XCTAssertFalse(first.allowsMissingEventRemoval)
+    }
+
+    func testReservedAssessmentWindowRequiresBothCanonicalACORNSignals() throws {
+        let reserved = event(uid: "reserved", codeAndSection: "MAT157Y5 LEC0101",
+            recurrence: "DESCRIPTION:Course title\\n********")
+            .replacingOccurrences(of: "LOCATION:MN 1210", with: "LOCATION:ZZ TBA")
+        let ordinary = event(uid: "ordinary", codeAndSection: "CSC108H5 TUT0101", recurrence: "")
+            .replacingOccurrences(of: "LOCATION:MN 1210", with: "LOCATION:ZZ TBA")
+        let document = try ICalendarParser().parse(Data(calendarWithEvents([reserved, ordinary]).utf8))
+        let draft = try TimetableImporter().interpret(document, suggestedFileName: nil)
+        XCTAssertTrue(try XCTUnwrap(draft.meetings.first { $0.id.sourceIdentifier == "reserved" }).isReservedAssessmentWindow)
+        XCTAssertFalse(try XCTUnwrap(draft.meetings.first { $0.id.sourceIdentifier == "ordinary" }).isReservedAssessmentWindow)
     }
 
     private func importFixture(_ name: String) throws -> TimetableImportDraft {

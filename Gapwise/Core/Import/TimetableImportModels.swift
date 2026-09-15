@@ -79,6 +79,9 @@ struct TimetableImportWarning: Hashable, Identifiable, Sendable {
 
 enum SkippedEventReason: Error, Hashable, Sendable {
     case allDayEvent
+    case conflictingUID
+    case unsupportedCampus
+    case unsupportedTimeZoneRecurrence
     case cancelled
     case invalidTimeRange
     case malformedDate
@@ -92,6 +95,10 @@ enum SkippedEventReason: Error, Hashable, Sendable {
     var message: String {
         switch self {
         case .allDayEvent: "All-day events are not timetable meetings."
+        case .conflictingUID: "Conflicting events share a UID; the whole series needs review."
+        case .unsupportedCampus: "This event is outside UTM, the campus currently supported by Gapwise."
+        case .unsupportedTimeZoneRecurrence:
+            "Repeating events must use Toronto or floating local time to preserve their time across daylight saving changes."
         case .cancelled: "A cancelled event was ignored."
         case .invalidTimeRange: "An event ends before it starts or crosses a day boundary."
         case .malformedDate: "An event contains a date that could not be read."
@@ -119,6 +126,9 @@ struct TimetableImportDraft: Sendable {
     let skippedEvents: [SkippedCalendarEvent]
     let ignoredEventCount: Int
     let totalEventCount: Int
+    // Rejected UIDs are evidence of unreadable updates, not evidence of deletion.
+    var retainedEventUIDs: Set<String> = []
+    var allowsMissingEventRemoval = true
 
     var courseCount: Int {
         Set(meetings.map { ImportedCourseIdentity(campus: $0.campus, courseCode: $0.courseCode) }).count
@@ -142,7 +152,10 @@ struct TimetableImportChanges: Equatable, Sendable {
     let added: Int
     let updated: Int
     let unchanged: Int
-    let retainedFromPreviousImport: Int
+    let removedFromSource: Int
+    let suppressed: Int
+    let unresolved: Int
+    var retainedForReview: Int = 0
 }
 
 struct TimetableImportPlan: Identifiable, Sendable {
@@ -150,5 +163,6 @@ struct TimetableImportPlan: Identifiable, Sendable {
 
     let draft: TimetableImportDraft
     let changes: TimetableImportChanges
+    let previewMeetings: [CourseMeeting]
     let resultingSnapshot: TimetableSnapshot
 }

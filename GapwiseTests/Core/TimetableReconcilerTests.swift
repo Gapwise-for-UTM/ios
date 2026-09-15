@@ -31,7 +31,7 @@ final class TimetableReconcilerTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(second.resultingSnapshot.meetings.count, 3)
     }
 
-    func testNewerImportUpdatesMatchingUIDAndConservativelyRetainsMissingMeeting() throws {
+    func testNewerCompleteSourceImportUpdatesMatchingUIDAndRemovesMissingMeeting() throws {
         let service = TimetableImportService()
         let first = try service.prepareImport(
             data: FixtureLoader.data(named: "update-v1"),
@@ -47,8 +47,8 @@ final class TimetableReconcilerTests: XCTestCase, @unchecked Sendable {
         )
 
         XCTAssertEqual(second.changes.updated, 1)
-        XCTAssertEqual(second.changes.retainedFromPreviousImport, 1)
-        XCTAssertEqual(second.resultingSnapshot.meetings.count, 2)
+        XCTAssertEqual(second.changes.removedFromSource, 1)
+        XCTAssertEqual(second.resultingSnapshot.meetings.count, 1)
 
         let updated = try XCTUnwrap(
             second.resultingSnapshot.meetings.first { $0.id.sourceIdentifier == "update-primary@example.invalid" }
@@ -90,6 +90,7 @@ final class TimetableReconcilerTests: XCTestCase, @unchecked Sendable {
         let encoded = try JSONEncoder().encode(original)
         var object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         object.removeValue(forKey: "origin")
+        object.removeValue(forKey: "sourceValues")
         var identifier = try XCTUnwrap(object["id"] as? [String: Any])
         identifier.removeValue(forKey: "importSourceIdentifier")
         object["id"] = identifier
@@ -126,6 +127,53 @@ final class TimetableReconcilerTests: XCTestCase, @unchecked Sendable {
         let loaded = try await relaunchedRepository.load()
 
         XCTAssertEqual(loaded, plan.resultingSnapshot)
+    }
+
+    func testSkippedUpdateRetainsExistingUIDInsteadOfTreatingItAsRemoved() throws {
+        let service = TimetableImportService()
+        let originalData = try FixtureLoader.data(named: "normal-utm")
+        let first = try service.prepareImport(data: originalData, suggestedFileName: nil, existingSnapshot: .empty)
+        let brokenText = try XCTUnwrap(String(data: originalData, encoding: .utf8))
+            .replacingOccurrences(of: "20260914T100000", with: "20260230T100000")
+        let second = try service.prepareImport(data: Data(brokenText.utf8), suggestedFileName: nil,
+            existingSnapshot: first.resultingSnapshot)
+        XCTAssertEqual(second.resultingSnapshot.meetings.count, 3)
+        XCTAssertEqual(second.changes.retainedForReview, 1)
+        XCTAssertEqual(second.changes.removedFromSource, 0)
+    }
+
+    func testSuppressedUIDDoesNotReappearOnImport() throws {
+        let service = TimetableImportService()
+        let data = try FixtureLoader.data(named: "normal-utm")
+        let first = try service.prepareImport(data: data, suggestedFileName: nil, existingSnapshot: .empty)
+        let suppressed = try XCTUnwrap(first.resultingSnapshot.meetings.first)
+        var snapshot = first.resultingSnapshot
+        snapshot.meetings.removeAll { $0.id == suppressed.id }
+        snapshot.suppressedImportedMeetings.insert(try XCTUnwrap(ImportedMeetingIdentity(suppressed)))
+        let repeated = try service.prepareImport(data: data, suggestedFileName: nil, existingSnapshot: snapshot)
+        XCTAssertEqual(repeated.resultingSnapshot.meetings.count, 2)
+        XCTAssertEqual(repeated.changes.suppressed, 1)
+        XCTAssertFalse(repeated.resultingSnapshot.meetings.contains { $0.id == suppressed.id })
+    }
+
+    func testSourceRefreshPreservesExplicitLocalEdits() throws {
+        let service = TimetableImportService()
+        let first = try service.prepareImport(data: FixtureLoader.data(named: "update-v1"),
+            suggestedFileName: nil, existingSnapshot: .empty)
+        var snapshot = first.resultingSnapshot
+        let index = try XCTUnwrap(snapshot.meetings.firstIndex { $0.id.sourceIdentifier == "update-primary@example.invalid" })
+        let original = snapshot.meetings[index]
+        let edit = try CourseMeetingEdit(campus: original.campus, courseCode: original.courseCode.rawValue,
+            courseTitle: original.courseTitle, meetingType: original.meetingType, meetingSection: original.meetingSection,
+            days: original.days, startTime: original.startTime, endTime: original.endTime, location: "IB 120")
+        snapshot.meetings[index] = try original.applying(edit)
+        let updated = try service.prepareImport(data: FixtureLoader.data(named: "update-v2"),
+            suggestedFileName: nil, existingSnapshot: snapshot)
+        let meeting = try XCTUnwrap(updated.resultingSnapshot.meetings.first)
+        XCTAssertEqual(meeting.location?.rawLocation, "IB 120")
+        XCTAssertEqual(meeting.sourceValues.location?.room, "2110")
+        XCTAssertEqual(meeting.startTime, LocalTime(hour: 10, minute: 30))
+        XCTAssertEqual(meeting.overriddenFields, [.location])
     }
 
     private func makeMeeting(sourceIdentifier: String, origin: MeetingOrigin) throws -> CourseMeeting {

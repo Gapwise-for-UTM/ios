@@ -25,10 +25,30 @@ struct TimetableImporter: Sendable {
         var skippedEvents: [SkippedCalendarEvent] = []
         var ignoredEventCount = 0
         var seenUIDs: Set<String> = []
+        var acceptedOrRemovedUIDs: Set<String> = []
+        var allowsMissingEventRemoval = document.calendarName != nil
+        let eventsByUID = Dictionary(grouping: document.events.compactMap { event in
+            event.uid.map { ($0, event) }
+        }, by: { $0.0 })
+        let conflictingUIDs = Set(eventsByUID.compactMap { uid, entries in
+            entries.contains { $0.1 != entries[0].1 } ? uid : nil
+        })
 
         for (index, event) in document.events.enumerated() {
             let fallbackIdentifier = "event-\(index + 1)"
             let eventIdentifier = event.uid ?? fallbackIdentifier
+
+            if let uid = event.uid, conflictingUIDs.contains(uid) {
+                skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .conflictingUID))
+                continue
+            }
+            // A standalone cancellation may omit SUMMARY and timing properties.
+            if event.status == "CANCELLED", event.issues.isEmpty,
+                event.unsupportedRecurrenceProperties.isEmpty, let uid = event.uid {
+                acceptedOrRemovedUIDs.insert(uid)
+                skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .cancelled))
+                continue
+            }
 
             guard let descriptor = courseParser.parse(summary: event.summary, description: event.description) else {
                 if courseParser.containsCourseCode(summary: event.summary, description: event.description) {
@@ -41,11 +61,6 @@ struct TimetableImporter: Sendable {
                 continue
             }
 
-            guard event.status != "CANCELLED" else {
-                skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .cancelled))
-                continue
-            }
-
             guard event.issues.allSatisfy({ !$0.blocksImport }) else {
                 skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .malformedRequiredProperty))
                 continue
@@ -55,6 +70,7 @@ struct TimetableImporter: Sendable {
                 continue
             }
             guard let uid = event.uid else {
+                allowsMissingEventRemoval = false
                 skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .missingUID))
                 continue
             }
@@ -73,10 +89,11 @@ struct TimetableImporter: Sendable {
 
             let startDate = LocalDate(date: startDateTime.instant, calendar: calendar)
             let endDate = LocalDate(date: endDateTime.instant, calendar: calendar)
-            let startComponents = calendar.dateComponents([.hour, .minute], from: startDateTime.instant)
-            let endComponents = calendar.dateComponents([.hour, .minute], from: endDateTime.instant)
+            let startComponents = calendar.dateComponents([.hour, .minute, .second], from: startDateTime.instant)
+            let endComponents = calendar.dateComponents([.hour, .minute, .second], from: endDateTime.instant)
             guard
                 startDate == endDate,
+                startComponents.second == 0, endComponents.second == 0,
                 endDateTime.instant > startDateTime.instant,
                 let startTime = LocalTime(hour: startComponents.hour ?? -1, minute: startComponents.minute ?? -1),
                 let endTime = LocalTime(hour: endComponents.hour ?? -1, minute: endComponents.minute ?? -1),
@@ -99,6 +116,12 @@ struct TimetableImporter: Sendable {
 
             let recurrence: WeeklyRecurrence
             if let rule = event.recurrenceRule {
+                guard [startDateTime, endDateTime].allSatisfy({
+                    $0.isFloating || $0.timeZoneIdentifier == calendar.timeZone.identifier
+                }) else {
+                    skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .unsupportedTimeZoneRecurrence))
+                    continue
+                }
                 do {
                     recurrence = try RecurrenceRuleInterpreter(calendar: calendar).interpret(
                         rule,
@@ -132,8 +155,14 @@ struct TimetableImporter: Sendable {
                 productIdentifier: document.productIdentifier,
                 location: location,
                 description: event.description,
-                importContext: campusContext
+                importContext: campusContext,
+                courseCode: descriptor.courseCode
             ).campus
+            guard campus == .utm || campus == .unknown else {
+                acceptedOrRemovedUIDs.insert(uid)
+                skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .unsupportedCampus))
+                continue
+            }
             let term = AcademicTerm(
                 id: .init(rawValue: "ics:\(startDate.iso8601String):\(recurrence.endsOn.iso8601String)"),
                 displayName: "Imported \(startDate.iso8601String) to \(recurrence.endsOn.iso8601String)",
@@ -155,9 +184,11 @@ struct TimetableImporter: Sendable {
                     location: location,
                     instructor: descriptor.instructor,
                     sourceIdentifier: uid,
-                    origin: .calendarImport(sourceIdentifier: sourceIdentifier)
+                    origin: .calendarImport(sourceIdentifier: sourceIdentifier),
+                    isReservedAssessmentWindow: isReservedAssessmentWindow(event)
                 )
                 meetings.append(meeting)
+                acceptedOrRemovedUIDs.insert(uid)
             } catch {
                 skippedEvents.append(skipped(event, fallbackID: fallbackIdentifier, reason: .invalidTimeRange))
                 continue
@@ -171,13 +202,24 @@ struct TimetableImporter: Sendable {
 
         return TimetableImportDraft(
             sourceIdentifier: sourceIdentifier,
-            sourceName: document.calendarName,
+            sourceName: document.calendarName ?? suggestedFileName,
             meetings: meetings,
             warnings: warnings.removingDuplicateIDs(),
             skippedEvents: skippedEvents,
             ignoredEventCount: ignoredEventCount,
-            totalEventCount: document.events.count
+            totalEventCount: document.events.count,
+            retainedEventUIDs: Set(document.events.compactMap(\.uid)).subtracting(acceptedOrRemovedUIDs),
+            allowsMissingEventRemoval: allowsMissingEventRemoval
         )
+    }
+
+    private func isReservedAssessmentWindow(_ event: ICalendarEvent) -> Bool {
+        // Exact ACORN evidence convention from Gapwise core ics-parser.ts.
+        guard let location = event.location?.trimmingCharacters(in: .whitespacesAndNewlines),
+            location.range(of: #"^ZZ\s+TBA$"#, options: [.regularExpression, .caseInsensitive]) != nil else { return false }
+        return event.description?.split(separator: "\n", omittingEmptySubsequences: false).contains {
+            $0.count >= 6 && $0.allSatisfy { $0 == "*" }
+        } ?? false
     }
 
     private func warningsForEvent(
@@ -283,8 +325,9 @@ private enum CalendarImportSourceIdentifier {
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
             .filter { !$0.isEmpty }
             .joined(separator: "|")
-        let fallback = suggestedFileName?.lowercased() ?? "calendar"
-        return "ics-\(fnv1a64(source.isEmpty ? fallback : source))"
+        // File-provider renames (e.g. "timetable (2).ics") must not create a new source.
+        // Metadata-less files share the local UTM import slot; filenames are presentation only.
+        return "ics-\(fnv1a64(source.isEmpty ? "utm-calendar" : source))"
     }
 
     private static func fnv1a64(_ value: String) -> String {
@@ -305,7 +348,7 @@ private extension LocalDate {
 
 private extension ICalendarEventIssue {
     var blocksImport: Bool {
-        let requiredProperties = ["UID", "SUMMARY", "DTSTART", "DTEND", "RRULE", "STATUS"]
+        let requiredProperties = ["UID", "SUMMARY", "DTSTART", "DTEND", "RRULE", "STATUS", "EXDATE", "RDATE", "RECURRENCE-ID"]
         switch self {
         case let .duplicateProperty(property): return requiredProperties.contains(property)
         case let .malformedProperty(property): return property.map(requiredProperties.contains) ?? false

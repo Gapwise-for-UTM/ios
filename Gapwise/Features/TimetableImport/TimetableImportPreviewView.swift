@@ -40,7 +40,7 @@ struct TimetableImportPreviewView: View {
                             ProgressView()
                                 .accessibilityLabel("Saving timetable")
                         } else {
-                            Text("Import")
+                            Text("Save Import")
                                 .bold()
                         }
                     }
@@ -54,7 +54,7 @@ struct TimetableImportPreviewView: View {
         Section {
             LabeledContent("Courses", value: "\(plan.draft.courseCount)")
             LabeledContent("Meetings", value: "\(plan.draft.meetings.count)")
-            LabeledContent("Campuses", value: campusSummary)
+            LabeledContent("Campus", value: campusSummary)
 
             if plan.draft.unresolvedCampusCount > 0 {
                 Label(
@@ -80,24 +80,35 @@ struct TimetableImportPreviewView: View {
             ChangeRow(
                 title: "Unchanged", count: plan.changes.unchanged, systemImage: "checkmark.circle", tint: .secondary)
 
-            if plan.changes.retainedFromPreviousImport > 0 {
+            if plan.changes.removedFromSource > 0 {
                 ChangeRow(
-                    title: "Previously imported",
-                    count: plan.changes.retainedFromPreviousImport,
+                    title: "Removed from this source",
+                    count: plan.changes.removedFromSource,
                     systemImage: "archivebox",
                     tint: .secondary
                 )
             }
+            if plan.changes.suppressed > 0 {
+                ChangeRow(title: "Previously removed by you", count: plan.changes.suppressed,
+                          systemImage: "eye.slash", tint: .secondary)
+            }
+            if plan.changes.retainedForReview > 0 {
+                ChangeRow(title: "Kept from previous import", count: plan.changes.retainedForReview,
+                          systemImage: "archivebox", tint: .secondary)
+                Text("Some source events could not be read safely, or this calendar has no distinct source name. Existing meetings are kept where replacement is uncertain.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         } footer: {
-            if plan.changes.retainedFromPreviousImport > 0 {
-                Text("Meetings missing from this file will remain saved until explicit removal is available.")
+            if plan.changes.removedFromSource > 0 {
+                Text("Saving replaces this calendar source. Meetings absent from the updated source will be removed. Other sources are kept.")
             }
         }
     }
 
     private var meetingsSection: some View {
-        Section("Ready to Import") {
-            ForEach(plan.draft.meetings) { meeting in
+        Section("After Import") {
+            ForEach(plan.previewMeetings) { meeting in
                 VStack(alignment: .leading, spacing: GapwiseSpacing.compact) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(meeting.courseCode.rawValue)

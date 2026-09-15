@@ -9,8 +9,8 @@ enum AppDependencies {
         do {
             timetableRepository = try JSONTimetableRepository.applicationSupport()
         } catch {
-            timetableRepository = InMemoryTimetableRepository()
-            startupMessage = "Local storage is temporarily unavailable. Changes made in this session may not persist."
+            timetableRepository = UnavailableTimetableRepository()
+            startupMessage = "Local storage is unavailable. Import will be available after storage can be opened."
         }
 
         return AppModel(
