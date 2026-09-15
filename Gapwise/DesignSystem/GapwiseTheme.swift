@@ -21,7 +21,10 @@ struct GapwiseCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(GapwiseSpacing.standard)
-            .background(.gapwiseSecondarySurface, in: RoundedRectangle(cornerRadius: GapwiseRadius.card))
+            .background(
+                Color.gapwiseSecondarySurface,
+                in: RoundedRectangle(cornerRadius: GapwiseRadius.card)
+            )
     }
 }
 
