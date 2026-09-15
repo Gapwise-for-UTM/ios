@@ -72,13 +72,25 @@ struct TimetableImportPreviewView: View {
     }
 
     private var changesSection: some View {
-        Section("Changes") {
-            ChangeRow(title: "New", count: plan.changes.added, systemImage: "plus.circle.fill", tint: .gapwiseSuccess)
+        Section {
             ChangeRow(
-                title: "Updated", count: plan.changes.updated, systemImage: "arrow.triangle.2.circlepath",
-                tint: .gapwiseAccent)
+                title: "New",
+                count: plan.changes.added,
+                systemImage: "plus.circle.fill",
+                tint: Color.gapwiseSuccess
+            )
             ChangeRow(
-                title: "Unchanged", count: plan.changes.unchanged, systemImage: "checkmark.circle", tint: .secondary)
+                title: "Updated",
+                count: plan.changes.updated,
+                systemImage: "arrow.triangle.2.circlepath",
+                tint: Color.gapwiseAccent
+            )
+            ChangeRow(
+                title: "Unchanged",
+                count: plan.changes.unchanged,
+                systemImage: "checkmark.circle",
+                tint: .secondary
+            )
 
             if plan.changes.removedFromSource > 0 {
                 ChangeRow(
@@ -89,16 +101,26 @@ struct TimetableImportPreviewView: View {
                 )
             }
             if plan.changes.suppressed > 0 {
-                ChangeRow(title: "Previously removed by you", count: plan.changes.suppressed,
-                          systemImage: "eye.slash", tint: .secondary)
+                ChangeRow(
+                    title: "Previously removed by you",
+                    count: plan.changes.suppressed,
+                    systemImage: "eye.slash",
+                    tint: .secondary
+                )
             }
             if plan.changes.retainedForReview > 0 {
-                ChangeRow(title: "Kept from previous import", count: plan.changes.retainedForReview,
-                          systemImage: "archivebox", tint: .secondary)
+                ChangeRow(
+                    title: "Kept from previous import",
+                    count: plan.changes.retainedForReview,
+                    systemImage: "archivebox",
+                    tint: .secondary
+                )
                 Text("Some source events could not be read safely, or this calendar has no distinct source name. Existing meetings are kept where replacement is uncertain.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+        } header: {
+            Text("Changes")
         } footer: {
             if plan.changes.removedFromSource > 0 {
                 Text("Saving replaces this calendar source. Meetings absent from the updated source will be removed. Other sources are kept.")
