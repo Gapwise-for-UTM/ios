@@ -75,8 +75,8 @@ struct TodayView: View {
                 Text(meeting.courseCode.rawValue)
                     .font(.title2.weight(.bold))
                 if let courseTitle = meeting.courseTitle {
-                Text(courseTitle)
-                    .font(.subheadline.weight(.medium))
+                    Text(courseTitle)
+                        .font(.subheadline.weight(.medium))
                 }
                 Text(meeting.displaySection)
                     .font(.subheadline)
@@ -110,7 +110,7 @@ struct TodayView: View {
     private var classesCompleteCard: some View {
         Label("Classes complete for today", systemImage: "checkmark.circle.fill")
             .font(.headline)
-            .foregroundStyle(.gapwiseSuccess)
+            .foregroundStyle(Color.gapwiseSuccess)
             .frame(maxWidth: .infinity, alignment: .leading)
             .gapwiseCard()
     }
@@ -133,8 +133,8 @@ struct TodayView: View {
 
     private func statusColor(for timing: ClassTiming) -> Color {
         switch timing {
-        case .inProgress: .gapwiseSuccess
-        case .upcoming: .gapwiseAccent
+        case .inProgress: Color.gapwiseSuccess
+        case .upcoming: Color.gapwiseAccent
         }
     }
 }
