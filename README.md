@@ -4,9 +4,9 @@
 
 # Gapwise for iOS
 
-### The native iOS client for Gapwise.
+### The native iOS client for Gapwise for UTM.
 
-**A privacy-first Swift + SwiftUI app for University of Toronto timetables, designed around fast local interaction and a UTM-focused campus layer.**
+**A privacy-first Swift + SwiftUI app for UTM timetables and campus context, designed around fast local interaction and canonical Gapwise data boundaries.**
 
 [![iOS](https://img.shields.io/badge/iOS-Native-000000?style=for-the-badge&logo=apple&logoColor=white)](https://developer.apple.com/ios/)
 [![Swift](https://img.shields.io/badge/Swift-Native-F05138?style=for-the-badge&logo=swift&logoColor=white)](https://www.swift.org/)
@@ -25,94 +25,115 @@
 
 ## What Gapwise for iOS is
 
-Gapwise for iOS is the native iPhone client for **Gapwise**, a privacy-first timetable and campus-intelligence platform for University of Toronto students.
+Gapwise for iOS is the native iPhone client for **Gapwise for UTM**, a privacy-first timetable, gap-planning, and campus-intelligence project for University of Toronto Mississauga students.
 
-This repository is the home of the Swift/SwiftUI application as it is built. The timetable experience is intended to support **UTM, UTSG, UTSC, and mixed-campus schedules**, while the first native campus map and routing work stays **UTM-focused** until equally grounded campus data exists elsewhere.
+The current product scope is **UTM only**. The native client should preserve uncertain or unsupported source information when necessary, but it does not promise a UTSG, UTSC, or mixed-campus product experience. Campus facts, entrances, accessibility evidence, and geometry remain owned by the canonical Gapwise Data boundary rather than by hand-maintained iOS constants.
 
-The goal is a real native iOS application rather than a WebView wrapper: navigation, storage, rendering, accessibility, interactions, and platform integration should be designed for iPhone while staying aligned with canonical Gapwise contracts.
+The goal is a real native iOS application rather than a WebView wrapper: navigation, storage, rendering, accessibility, interactions, and platform integration are designed for iPhone while staying aligned with the wider Gapwise repository ecosystem.
 
 ---
 
 ## Current status
 
-The iOS client is at an **early repository/bootstrap stage**. The brand, product boundary, technology direction, and ecosystem integration are established here; the application features described below are the implementation target, not a claim that they are already shipped.
+The repository contains a working early native foundation: an iPhone SwiftUI target, local `.ics` timetable import with review-before-save, local timetable persistence, deterministic timetable/reconciliation logic, date-aware Today and Timetable views, a Gaps surface backed by portable schedule arithmetic, a UTM-only Map boundary, Settings, portable domain tests, and GitHub Actions for Linux-portable and macOS/iOS validation.
 
-That distinction is intentional. Gapwise documentation should describe what exists and what is planned separately rather than presenting roadmap work as completed functionality.
+This remains an **early implementation**, not a shipped client. Import compatibility is validated against synthetic standards-based fixtures rather than every producer or a live ACORN export. Native UTM map rendering, production routing, account continuity, remote integrations, and broader timetable editing remain future work. The production app starts from local user data rather than seeded demo data.
 
 ---
 
 ## Product direction
 
-The native iOS experience is being designed around the same principles as the Android and web clients:
+The native iOS experience follows the same principles as the rest of Gapwise:
 
 - **Fast to open and easy to understand.** The important parts of the day should be immediately visible.
-- **All-campus timetable identity.** UTM, UTSG, and UTSC meetings should preserve their actual campus and source location.
-- **UTM map honesty.** Map/routing features should only claim the campus coverage backed by current first-party data.
-- **Local-first timetable handling.** Import and core schedule use should work without unnecessary network transmission.
-- **Optional account continuity.** A Gapwise account should enhance continuity rather than gate the core timetable experience.
-- **Deterministic planning.** Timetable arithmetic, gap boundaries, route timing, and feasibility should remain explicit and testable.
+- **UTM-first product scope.** Current native product behavior is designed for UTM rather than prematurely generalizing across campuses.
+- **Campus-data honesty.** Map and routing features only claim facts supported by canonical Gapwise Data evidence.
+- **Local-first timetable handling.** Import and core schedule use work without unnecessary network transmission.
+- **Optional account continuity.** A Gapwise account should enhance continuity rather than gate core timetable use.
+- **Deterministic planning.** Timetable arithmetic, gaps, route timing, and feasibility should remain explicit and testable.
 - **Native interaction.** Navigation, gestures, sheets, system pickers, accessibility, appearance, and lifecycle behavior should feel natural on iOS.
 
 ---
 
-## Planned app surface
+## App surface
 
-The native iOS client is intended to grow toward the core Gapwise experience:
+The current foundation includes:
 
-- **Today** for the current day's schedule and immediate context;
-- **Timetable** for local ACORN `.ics` import across U of T campuses;
-- **Gaps** for deterministic time-between-class planning;
-- **Map** for UTM-focused campus navigation and route context;
-- **Settings** for appearance, privacy, timetable, account/sync, routing, exports, and integrations as those systems are implemented;
-- light and dark appearance;
-- privacy-first local persistence;
-- optional, explicitly scoped account continuity.
+- **Today**, derived from the local timetable with current/next-class context and truthful empty states;
+- **Timetable**, with local schedule browsing, import, review, and meeting details;
+- **Gaps**, using deterministic portable schedule arithmetic rather than heuristic suggestions;
+- **Map**, currently an honest UTM integration boundary rather than fabricated map/routing coverage;
+- **Settings**, for implemented local preferences, timetable management, privacy information, and ecosystem links;
+- native document picking and import preview for compatible `.ics` files;
+- atomic local JSON persistence behind an async repository boundary;
+- light/dark appearance, Dynamic Type-friendly layouts, VoiceOver-minded labels, and native navigation.
 
-These are roadmap targets. This README will be tightened as implementation lands so the “current” surface never outruns the code.
+Planned work includes broader import compatibility, richer timetable editing, canonical UTM map consumption and routing, exports/integrations, and optional account continuity.
 
 ---
 
-## Technology direction
+## Technology
 
-Gapwise for iOS is intended to use modern native Apple tooling:
+Gapwise for iOS uses modern native Apple tooling:
 
 - **Swift**
 - **SwiftUI**
-- Apple document-picker and lifecycle APIs
-- **Keychain / platform-secure storage** where secret material is eventually required
-- a native map stack compatible with canonical Gapwise UTM data and routing semantics
+- Foundation persistence and Apple lifecycle APIs
+- platform-secure storage such as **Keychain** when secret material is eventually required
+- a native UTM map layer consuming canonical Gapwise data/contracts rather than inventing a parallel source of truth
 - optional Gapwise account integration only after its security boundary is implemented and reviewed
 
-The architecture should keep domain models, timetable parsing, persistence, account/sync, navigation, map integration, and feature UI separated as the application grows.
+Portable domain models, iCalendar parsing, timetable interpretation, reconciliation, and schedule arithmetic are kept separate from persistence and SwiftUI presentation.
+
+### Timetable import
+
+Gapwise accepts user-selected `.ics` files through the system document picker. Parsing, interpretation, preview, and persistence happen locally. The original calendar file is not retained as an application data source and timetable contents are not uploaded as part of ordinary import.
+
+The parser supports the timetable-oriented iCalendar subset exercised by the repository fixtures, including `VCALENDAR`, `VEVENT`, `DTSTART`, `DTEND`, `SUMMARY`, `LOCATION`, `DESCRIPTION`, `UID`, bounded weekly `RRULE` values, folded lines, escaped text, UTF-8 input, UTC/system timezone identifiers, and floating timestamps.
+
+Course/campus interpretation is deliberately conservative. UTM building evidence can establish UTM identity; conflicting or insufficient evidence remains unknown. Legacy/off-campus campus values may remain decodable or detectable so imported data is not silently corrupted, but the native product itself is UTM-only for now.
+
+Repeated imports reconcile by source identity and event `UID` so unchanged meetings are not duplicated. Existing local data is not silently discarded simply because a later import omits an event.
+
+Current limitations include unsupported recurrence-exception families and incomplete building recognition. Import is not ACORN login, credential access, scraping, or account/API integration.
 
 ---
 
 ## Privacy and security
 
-The iOS client follows the same security posture as the wider Gapwise ecosystem:
+The iOS client follows the wider Gapwise security posture:
 
 - minimize collection and transmission of student timetable data;
-- keep original ACORN calendar handling local where practical;
+- keep calendar handling local where practical;
 - never embed privileged service credentials in the application;
 - distinguish local-only features from optional account/cloud behavior;
-- use platform-backed secret storage when secret material is actually introduced;
-- preserve campus/source identity rather than inventing location certainty;
-- make permissions narrow, understandable, and revocable.
+- use platform-backed secret storage when secret material is introduced;
+- preserve uncertainty instead of inventing location/accessibility certainty;
+- keep permissions narrow, understandable, and revocable.
 
-No persistence, encryption, account-sync, or map capability should be described as implemented before the corresponding code and verification exist.
+The current timetable store uses local application storage behind an explicit repository boundary. Calendar import is designed to run on-device without requiring networking or telemetry. No account sync or production map/routing capability is claimed by this foundation.
 
 ---
 
 ## Development
 
-Native iOS development lives in this repository as the client is built out in Swift and SwiftUI.
+The app targets iPhone on iOS 17 or later and uses an Xcode project with no third-party runtime dependency requirement in the current foundation.
 
 ```bash
 git clone https://github.com/Gapwise-for-UTM/ios.git
 cd ios
 ```
 
-As the Xcode project and build pipeline land, this section will carry the exact supported Xcode/iOS requirements and verification commands.
+On macOS, open `Gapwise.xcodeproj`, select the `Gapwise` scheme, and build/test on an iPhone simulator or device.
+
+The portable Swift core can also be validated on Linux. The repository CI uses Swift 6.3.3 on Ubuntu Noble for the portable package:
+
+```bash
+docker run --rm -v "$PWD:/workspace" -w /workspace swift:6.3.3-noble swift package describe
+docker run --rm -v "$PWD:/workspace" -w /workspace swift:6.3.3-noble swift test
+```
+
+Linux cannot validate SwiftUI, the system document picker, Apple security-scoped URL behavior, signing, simulator lifecycle, or other Apple-only integration. Those remain macOS/Xcode validation responsibilities.
 
 ---
 
