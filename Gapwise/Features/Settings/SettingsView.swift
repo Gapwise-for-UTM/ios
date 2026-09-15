@@ -129,10 +129,14 @@ private enum AppInformation {
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
 
         switch (version, build) {
-        case let (.some(version), .some(build)): "\(version) (\(build))"
-        case let (.some(version), .none): version
-        case let (.none, .some(build)): build
-        case (.none, .none): "Development"
+        case let (.some(version), .some(build)):
+            return "\(version) (\(build))"
+        case let (.some(version), .none):
+            return version
+        case let (.none, .some(build)):
+            return build
+        case (.none, .none):
+            return "Development"
         }
     }
 }
